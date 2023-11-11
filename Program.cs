@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using Poll.Components;
 using Poll.DAL;
+using Poll.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -11,6 +12,7 @@ builder.Services.AddRazorComponents()
 builder.Services.AddDbContext<PollContext>();
 
 builder.Services.AddHostedService<DbSeeder>();
+builder.Services.AddSingleton<AppSynchronizer>();
 
 
 var app = builder.Build();

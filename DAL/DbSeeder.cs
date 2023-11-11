@@ -30,6 +30,7 @@ public class DbSeeder(IServiceProvider svc, ILogger<DbSeeder> logger) : IHostedS
         {
             Content = "Test Question 1",
             Index = 1,
+            IsCurrent = true,
         };
 
         var choice1 = new QuestionChoice()

@@ -1,7 +1,71 @@
 ﻿@page "/"
+@using Poll.DAL.Entities
+@using Poll.Services
+@using Poll.DAL
+@using Microsoft.EntityFrameworkCore
+
+@attribute [RenderModeInteractiveServer]
+@inject AppSynchronizer Synchronizer
+@implements IDisposable
+@inject ILogger<Home> Logger
+@inject IServiceProvider ServiceProvider
 
 <PageTitle>Home</PageTitle>
 
-<h1>Hello, world!</h1>
+@if (currentQuestion == null)
+{
+    <h1>
+        Chargement...
+    </h1>
+}
+else
+{
+    <h1>
+        @currentQuestion.Content
+    </h1>
+}
 
-Welcome to your new app.
+@code {
+    Question? currentQuestion = null;
+    CancellationTokenSource cts = new CancellationTokenSource();
+    SemaphoreSlim semaphore = new SemaphoreSlim(0);
+    
+
+    protected override async Task OnInitializedAsync()
+    {
+        Synchronizer.SubscribeQuestionChanged(QuestionChanged);
+
+        _ = Loop();
+        await Refresh();
+    }
+
+    private void QuestionChanged(Question q)
+    {
+        Logger.LogInformation("Question Changed " + q.Content);
+        semaphore.Release();
+    }
+
+    private async Task Loop()
+    {
+        while (!cts.Token.IsCancellationRequested)
+        {
+            await semaphore.WaitAsync();
+
+            await Refresh();
+        }
+    }
+    
+    private async Task Refresh()
+    {
+        Logger.LogInformation("Refreshing");
+        await using var scope = ServiceProvider.CreateAsyncScope();
+        currentQuestion = await scope.ServiceProvider.GetRequiredService<PollContext>().Questions.FirstAsync(i => i.IsCurrent);
+        StateHasChanged();
+    }
+
+    public void Dispose()
+    {
+        Synchronizer.UnsubscribeQuestionChanged(QuestionChanged);
+        cts.Cancel();
+    }
+}

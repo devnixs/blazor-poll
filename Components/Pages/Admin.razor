@@ -1,0 +1,77 @@
+﻿@page "/admin"
+@using Poll.DAL.Entities
+@using Poll.DAL
+@using Microsoft.EntityFrameworkCore
+@using Poll.Services
+@attribute [RenderModeInteractiveServer]
+@inject IServiceProvider ServiceProvider
+@inject ILogger<Admin> Logger
+@inject AppSynchronizer Synchronizer
+
+<PageTitle>Admin</PageTitle>
+
+<h1>Questions</h1>
+
+@if (currentQuestion == null)
+{
+    <p>Chargement...</p>
+}
+else
+{
+    <p role="status">Current question: @currentQuestion.Content</p>
+}
+
+<button class="btn btn-primary" @onclick="GoToNextQuestion">Next</button>
+
+@code {
+    Question? currentQuestion = null;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await Refresh();
+    }
+
+    private async Task Refresh()
+    {
+        await using var scope = ServiceProvider.CreateAsyncScope();
+        currentQuestion = await scope.ServiceProvider.GetRequiredService<PollContext>().Questions.FirstAsync(i => i.IsCurrent);
+    }
+
+    private async Task GoToNextQuestion()
+    {
+        await using var scope = ServiceProvider.CreateAsyncScope();
+        var db = scope.ServiceProvider.GetRequiredService<PollContext>();
+        currentQuestion = await db.Questions.FirstAsync(i => i.IsCurrent);
+        var next = await db.Questions
+            .Where(i => i.Index > currentQuestion.Index)
+            .OrderBy(i => i.Index)
+            .FirstOrDefaultAsync();
+
+        Question q;
+        if (next != null)
+        {
+            Logger.LogInformation("Switching to question #" + next.Index);
+            currentQuestion.IsCurrent = false;
+            next.IsCurrent = true;
+            q = next;
+        }
+        else
+        {
+            Logger.LogInformation("Switching back to first question");
+            var first = await db.Questions
+                .OrderBy(i => i.Index)
+                .FirstAsync();
+
+            currentQuestion.IsCurrent = false;
+            first.IsCurrent = true;
+            q = first;
+        }
+
+        await db.SaveChangesAsync();
+        
+        Synchronizer.OnQuestionChanged(q);
+
+        await Refresh();
+    }
+
+}

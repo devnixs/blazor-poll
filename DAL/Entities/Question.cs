@@ -10,4 +10,5 @@ public class Question
     public string Content { get; set; }
 
     public int Index { get; set; }
+    public bool IsCurrent { get; set; }
 }
