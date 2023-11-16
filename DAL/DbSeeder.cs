@@ -73,7 +73,7 @@ public class DbSeeder(IServiceProvider svc, ILogger<DbSeeder> logger) : IHostedS
         pollContext.Add(question2);
         pollContext.Add(choice3);
         pollContext.Add(choice4);
-
+        
         await pollContext.SaveChangesAsync();
     }
 

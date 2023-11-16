@@ -8,12 +8,13 @@ public class QuestionChoice
     [Key]
     public int Id { get; set; }
     
-    public string Content { get; set; }
+    [Required]
+    public required string Content { get; set; }
 
     public int Index { get; set; }
 
     public int QuestionId { get; set; }
     
     [ForeignKey(nameof(QuestionId))]
-    public Question Question { get; set; }
+    public Question? Question { get; set; }
 }

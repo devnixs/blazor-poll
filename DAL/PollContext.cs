@@ -7,6 +7,8 @@ public class PollContext : DbContext
 {
     public DbSet<Question> Questions { get; set; }
     public DbSet<QuestionChoice> QuestionChoices { get; set; }
+    public DbSet<Game> Games { get; set; }
+    public DbSet<Player> Players { get; set; }
     
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
     {
