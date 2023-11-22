@@ -1,16 +1,26 @@
-﻿namespace Poll.Services;
+﻿using Microsoft.JSInterop;
+
+namespace Poll.Services;
 
 public class HttpUtils
 {
-    private readonly IHttpContextAccessor _httpContextAccessor;
+    private readonly IJSRuntime _runtime;
 
-    public HttpUtils(IHttpContextAccessor httpContextAccessor)
+    public HttpUtils(IJSRuntime runtime)
     {
-        _httpContextAccessor = httpContextAccessor;
+        _runtime = runtime;
     }
 
-    public bool IsPreRendering()
+    public async Task<bool> IsPreRendering()
     {
-        return _httpContextAccessor.HttpContext is not null;
+        try
+        {
+            await _runtime.InvokeVoidAsync("jsMethod");
+            return false;
+        }
+        catch (System.InvalidOperationException)
+        {
+            return true;
+        }
     }
 }

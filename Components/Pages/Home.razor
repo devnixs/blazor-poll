@@ -4,15 +4,15 @@
 @using Poll.DAL
 @using Microsoft.EntityFrameworkCore
 
-@attribute [RenderModeInteractiveServer]
 @inject AppSynchronizer Synchronizer
 @implements IDisposable
 @inject ILogger<Home> Logger
 @inject IServiceProvider ServiceProvider
+@inject HttpUtils httpUtils
+@inject PlayerService PlayerService
 @inject NavigationManager NavigationManager
 
 <PageTitle>Home</PageTitle>
-
 @if (currentQuestion == null)
 {
     <h1>
@@ -30,19 +30,20 @@ else
     Question? currentQuestion = null;
     CancellationTokenSource cts = new CancellationTokenSource();
     SemaphoreSlim semaphore = new SemaphoreSlim(0);
-    
 
     protected override async Task OnInitializedAsync()
     {
         await using var scope = ServiceProvider.CreateAsyncScope();
-        if (scope.ServiceProvider.GetRequiredService<HttpUtils>().IsPreRendering())
+        if (await httpUtils.IsPreRendering())
         {
+            Logger.LogInformation("Skipped: Prerendering");
             return;
         }
         
-        var player = await scope.ServiceProvider.GetRequiredService<PlayerService>().GetPlayer();
+        var player = await PlayerService.GetPlayer();
         if (player is null)
         {
+            Logger.LogInformation("Player doesn't exist. Redirecting.");
             NavigationManager.NavigateTo("/create-player");
         }
         

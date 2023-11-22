@@ -4,11 +4,12 @@
 @using Poll.DAL
 @using Microsoft.EntityFrameworkCore
 
-@attribute [RenderModeInteractiveServer]
 @inject AppSynchronizer Synchronizer
 @inject ILogger<Home> Logger
 @inject IServiceProvider ServiceProvider
+@inject HttpUtils httpUtils
 @inject NavigationManager NavigationManager
+@inject PlayerService PlayerService
 
 <PageTitle>Home</PageTitle>
 
@@ -32,11 +33,12 @@
     protected override async Task OnInitializedAsync()
     {
         await using var scope = ServiceProvider.CreateAsyncScope();
-        if (scope.ServiceProvider.GetRequiredService<HttpUtils>().IsPreRendering())
+        if (await httpUtils.IsPreRendering())
         {
             return;
         }
-        var player = await scope.ServiceProvider.GetRequiredService<PlayerService>().GetPlayer();
+        
+        var player = await PlayerService.GetPlayer();
         if (player is not null)
         {
             NavigationManager.NavigateTo("/");
@@ -49,11 +51,8 @@
         {
             return;
         }
-
         
-        await using var scope = ServiceProvider.CreateAsyncScope();
-        var context = scope.ServiceProvider.GetRequiredService<HttpUtils>().IsPreRendering();
-        await scope.ServiceProvider.GetRequiredService<PlayerService>().SetPlayerName(Model.Name);
+        await PlayerService.SetPlayerName(Model.Name);
         NavigationManager.NavigateTo("/");
     }
 }
