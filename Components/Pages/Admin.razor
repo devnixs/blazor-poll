@@ -3,9 +3,9 @@
 @using Poll.DAL
 @using Microsoft.EntityFrameworkCore
 @using Poll.Services
-@inject IServiceProvider ServiceProvider
 @inject ILogger<Admin> Logger
 @inject AppSynchronizer Synchronizer
+@inject DbContextProvider DbContextProvider
 
 <PageTitle>Admin</PageTitle>
 
@@ -32,14 +32,13 @@ else
 
     private async Task Refresh()
     {
-        await using var scope = ServiceProvider.CreateAsyncScope();
-        currentQuestion = await scope.ServiceProvider.GetRequiredService<PollContext>().Questions.FirstAsync(i => i.IsCurrent);
+        using var ctx = DbContextProvider.ProvidePollContext(out var db);
+        currentQuestion = await db.Questions.FirstAsync(i => i.IsCurrent);
     }
 
     private async Task GoToNextQuestion()
     {
-        await using var scope = ServiceProvider.CreateAsyncScope();
-        var db = scope.ServiceProvider.GetRequiredService<PollContext>();
+        using var ctx = DbContextProvider.ProvidePollContext(out var db);
         currentQuestion = await db.Questions.FirstAsync(i => i.IsCurrent);
         var next = await db.Questions
             .Where(i => i.Index > currentQuestion.Index)

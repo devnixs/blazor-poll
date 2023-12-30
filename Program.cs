@@ -18,8 +18,9 @@ builder.Services.AddDbContext<PollContext>();
 
 builder.Services.AddHostedService<DbSeeder>();
 builder.Services.AddSingleton<AppSynchronizer>();
-builder.Services.AddTransient<PlayerService>();
+builder.Services.AddScoped<PlayerService>();
 builder.Services.AddTransient<HttpUtils>();
+builder.Services.AddTransient<DbContextProvider>();
 builder.Services.AddHttpContextAccessor();
 
 builder.Services.AddBlazoredLocalStorage();

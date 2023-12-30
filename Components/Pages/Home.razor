@@ -7,10 +7,10 @@
 @inject AppSynchronizer Synchronizer
 @implements IDisposable
 @inject ILogger<Home> Logger
-@inject IServiceProvider ServiceProvider
 @inject HttpUtils httpUtils
 @inject PlayerService PlayerService
 @inject NavigationManager NavigationManager
+@inject DbContextProvider DbContextProvider
 
 <PageTitle>Home</PageTitle>
 @if (currentQuestion == null)
@@ -33,7 +33,6 @@ else
 
     protected override async Task OnInitializedAsync()
     {
-        await using var scope = ServiceProvider.CreateAsyncScope();
         if (await httpUtils.IsPreRendering())
         {
             Logger.LogInformation("Skipped: Prerendering");
@@ -72,8 +71,9 @@ else
     private async Task Refresh()
     {
         Logger.LogInformation("Refreshing");
-        await using var scope = ServiceProvider.CreateAsyncScope();
-        currentQuestion = await scope.ServiceProvider.GetRequiredService<PollContext>().Questions.FirstAsync(i => i.IsCurrent);
+        
+        using var ctx = DbContextProvider.ProvidePollContext(out var db);
+        currentQuestion = await db.Questions.FirstAsync(i => i.IsCurrent);
         StateHasChanged();
     }
 

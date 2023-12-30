@@ -1,13 +1,23 @@
-﻿@inherits LayoutComponentBase
+﻿@using Poll.Services
+@inherits LayoutComponentBase
+@inject HttpUtils HttpUtils
+@inject ILogger<MainLayout> Logger
+@inject PlayerService PlayerService
+@implements IDisposable
 
 <div class="page">
     <div class="sidebar">
-        <NavMenu />
+        <NavMenu/>
     </div>
 
     <main>
         <div class="top-row px-4">
-            <a href="https://learn.microsoft.com/aspnet/core/" target="_blank">About</a>
+            <a>Virginie et Raphael 2024</a>
+
+            @if (!string.IsNullOrEmpty(playerName))
+            {
+                <a href="/create-player">Bonjour <strong>@playerName</strong> <i class="fa fa-pencil ml-3"></i></a>
+            }
         </div>
 
         <article class="content px-4">
@@ -21,3 +31,61 @@
     <a href="" class="reload">Reload</a>
     <a class="dismiss">🗙</a>
 </div>
+
+
+@code {
+    string? playerName = null;
+    CancellationTokenSource cts = new CancellationTokenSource();
+    SemaphoreSlim semaphore = new SemaphoreSlim(0);
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (await HttpUtils.IsPreRendering())
+        {
+            Logger.LogInformation("Skipped: Prerendering");
+            return;
+        }
+        
+        PlayerService.SubscribeNameChanged(NameChanged);
+
+        await LoadPlayer();
+        
+        _ = Loop();
+    }
+
+
+    private async Task LoadPlayer()
+    {
+        if (PlayerService is null)
+        {
+            Logger.LogInformation("PlayerService was null");
+            return;
+        }
+
+        Logger.LogInformation("Loading player");
+        var player = await PlayerService.GetPlayer();
+        playerName = player?.Name;
+    }
+    
+    private async Task Loop()
+    {
+        while (!cts.Token.IsCancellationRequested)
+        {
+            await semaphore.WaitAsync();
+
+            await LoadPlayer();
+        }
+    }
+    
+    public void Dispose()
+    {
+        PlayerService.UnsubscribeNameChanged(NameChanged);
+        cts.Cancel();
+    }
+    
+    public void NameChanged()
+    {
+        Logger.LogInformation("Named Changed");
+        semaphore.Release();
+    }
+}

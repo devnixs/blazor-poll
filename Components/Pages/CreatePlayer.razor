@@ -6,7 +6,6 @@
 
 @inject AppSynchronizer Synchronizer
 @inject ILogger<Home> Logger
-@inject IServiceProvider ServiceProvider
 @inject HttpUtils httpUtils
 @inject NavigationManager NavigationManager
 @inject PlayerService PlayerService
@@ -32,7 +31,6 @@
     
     protected override async Task OnInitializedAsync()
     {
-        await using var scope = ServiceProvider.CreateAsyncScope();
         if (await httpUtils.IsPreRendering())
         {
             return;
@@ -41,7 +39,7 @@
         var player = await PlayerService.GetPlayer();
         if (player is not null)
         {
-            NavigationManager.NavigateTo("/");
+            Model.Name = player.Name;
         }
     }
 
