@@ -15,7 +15,7 @@ public class Game
     public bool IsCurrent { get; set; }
     
     public ICollection<Question> Questions { get; set; }
-    public ICollection<Question> Players { get; set; }
+    public ICollection<Player> Players { get; set; }
 }
 
 public enum GameState

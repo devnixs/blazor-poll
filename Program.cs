@@ -33,8 +33,8 @@ builder.Services.AddHostedService<DbSeeder>();
 builder.Services.AddSingleton<AppSynchronizer>();
 builder.Services.AddScoped<PlayerService>();
 builder.Services.AddTransient<HttpUtils>();
-builder.Services.AddTransient<DbContextProvider>();
-builder.Services.AddTransient<DatabaseProvider>();
+builder.Services.AddTransient<DatabaseWriteContextProvider>();
+builder.Services.AddTransient<DatabaseReadContextProvider>();
 builder.Services.AddTransient<GameService>();
 builder.Services.AddHttpContextAccessor();
 

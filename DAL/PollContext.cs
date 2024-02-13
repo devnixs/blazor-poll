@@ -11,7 +11,13 @@ public class PollContext : DbContext
     public DbSet<Game> Games { get; set; }
     public DbSet<Player> Players { get; set; }
     public DbSet<Answer> Answers { get; set; }
+
     
+    public PollContext(DbContextOptions<PollContext> options) : base(options)
+    {
+        
+    }
+
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
     {
         optionsBuilder.UseNpgsql(@"Host=localhost;Username=admin;Password=password;Database=Poll");

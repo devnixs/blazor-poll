@@ -2,10 +2,11 @@
 @using Poll.DAL.Entities
 @using Poll.DAL
 @using Microsoft.EntityFrameworkCore
+@using Poll.DAL.Services
 @using Poll.Services
 @inject ILogger<Admin> Logger
 @inject AppSynchronizer Synchronizer
-@inject DbContextProvider DbContextProvider
+@inject DatabaseReadContextProvider DatabaseReadContextProvider
 
 <PageTitle>Admin</PageTitle>
 
@@ -32,8 +33,7 @@ else
 
     private async Task Refresh()
     {
-        using var ctx = DbContextProvider.ProvidePollContext(out var db);
-        currentQuestion = await db.Questions.FirstAsync(i => i.IsCurrent);
+        currentQuestion = await DatabaseReadContextProvider.Read<PollContext, Question?>(async db => await db.Questions.FirstOrDefaultAsync(i => i.Game.IsCurrent && i.IsCurrent));
     }
 
     private async Task GoToNextQuestion()
@@ -66,7 +66,7 @@ else
         }
 
         await db.SaveChangesAsync();
-        
+
         Synchronizer.OnQuestionChanged(q);
 
         await Refresh();

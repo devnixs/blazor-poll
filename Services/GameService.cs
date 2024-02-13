@@ -7,10 +7,12 @@ namespace Poll.Services;
 public class GameService
 {
     private readonly PollContext _pollContext;
+    private readonly AppSynchronizer _appSynchronizer;
 
-    public GameService(PollContext pollContext)
+    public GameService(PollContext pollContext, AppSynchronizer appSynchronizer)
     {
         _pollContext = pollContext;
+        _appSynchronizer = appSynchronizer;
     }
 
     public async Task PlayerSelectsAnswer(int playerId, int questionChoiceId)
