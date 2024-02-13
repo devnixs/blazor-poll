@@ -27,7 +27,7 @@ namespace Poll.DAL.Services
         public TransactionPriority Priority { get; set; } = TransactionPriority.Low;
         public new int MaxRetryCount => base.MaxRetryCount;
 
-        public override async Task<TResult> ExecuteAsync<TState, TResult>(TState state, Func<DbContext, TState, CancellationToken, Task<TResult>> operation, Func<DbContext, TState, CancellationToken, Task<Microsoft.EntityFrameworkCore.Storage.ExecutionResult<TResult>>> verifySucceeded,
+        public override async Task<TResult> ExecuteAsync<TState, TResult>(TState state, Func<DbContext, TState, CancellationToken, Task<TResult>> operation, Func<DbContext, TState, CancellationToken, Task<ExecutionResult<TResult>>>? verifySucceeded,
             CancellationToken cancellationToken = new CancellationToken())
         {
             return await base.ExecuteAsync(state, WrapWithStatisticsCapture(operation), verifySucceeded, cancellationToken);
