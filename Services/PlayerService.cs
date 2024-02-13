@@ -5,14 +5,25 @@ using Poll.DAL.Entities;
 
 namespace Poll.Services;
 
-public class PlayerService(ILocalStorageService localStorage, DbContextProvider ctxProvider,  ILogger<PlayerService> logger)
+public class PlayerService
 {
+    private readonly ILocalStorageService _localStorage;
+    private readonly DbContextProvider _ctxProvider;
+    private readonly ILogger<PlayerService> _logger;
+
+    public PlayerService(ILocalStorageService localStorage, DbContextProvider ctxProvider, ILogger<PlayerService> logger)
+    {
+        _localStorage = localStorage;
+        _ctxProvider = ctxProvider;
+        _logger = logger;
+    }
+
     private string Key = "PlayerId";
     private List<Action> NameChangedHandlers = new();
 
     public void SubscribeNameChanged(Action handler)
     {
-        logger.LogInformation("Subscribed to named changed");
+        _logger.LogInformation("Subscribed to named changed");
         lock (NameChangedHandlers)
         {
             NameChangedHandlers.Add(handler);
@@ -21,7 +32,7 @@ public class PlayerService(ILocalStorageService localStorage, DbContextProvider 
 
     private void TriggerNameChanged()
     {
-        logger.LogInformation("Triggering named changed");
+        _logger.LogInformation("Triggering named changed");
         lock (NameChangedHandlers)
         {
             foreach (var handler in NameChangedHandlers)
@@ -33,7 +44,7 @@ public class PlayerService(ILocalStorageService localStorage, DbContextProvider 
 
     public void UnsubscribeNameChanged(Action handler)
     {
-        logger.LogInformation("Unsubscribed to named changed");
+        _logger.LogInformation("Unsubscribed to named changed");
         lock (NameChangedHandlers)
         {
             NameChangedHandlers.Remove(handler);
@@ -42,10 +53,10 @@ public class PlayerService(ILocalStorageService localStorage, DbContextProvider 
     
     public async Task<Player?> GetPlayer()
     {
-        if (!await localStorage.ContainKeyAsync(Key)) return null;
+        if (!await _localStorage.ContainKeyAsync(Key)) return null;
 
-        var playerId = await localStorage.GetItemAsync<int>(Key);
-        using (ctxProvider.ProvidePollContext(out var db))
+        var playerId = await _localStorage.GetItemAsync<int>(Key);
+        using (_ctxProvider.ProvidePollContext(out var db))
         {
             return await db.Players.SingleOrDefaultAsync(i => i!.Id == playerId);
         }
@@ -53,9 +64,9 @@ public class PlayerService(ILocalStorageService localStorage, DbContextProvider 
 
     public async Task<Player> SetPlayerName(string name)
     {
-        using var ctx = ctxProvider.ProvidePollContext(out var db);
+        using var ctx = _ctxProvider.ProvidePollContext(out var db);
         
-        if (!await localStorage.ContainKeyAsync(Key))
+        if (!await _localStorage.ContainKeyAsync(Key))
         {
             var entity = new Player()
             {
@@ -64,7 +75,7 @@ public class PlayerService(ILocalStorageService localStorage, DbContextProvider 
 
             db.Players.Add(entity);
             await db.SaveChangesAsync();
-            await localStorage.SetItemAsync(Key, entity.Id);
+            await _localStorage.SetItemAsync(Key, entity.Id);
 
             TriggerNameChanged();
             
@@ -72,7 +83,7 @@ public class PlayerService(ILocalStorageService localStorage, DbContextProvider 
         }
         else
         {
-            var playerId = await localStorage.GetItemAsync<int>(Key);
+            var playerId = await _localStorage.GetItemAsync<int>(Key);
             var player = await db.Players.SingleOrDefaultAsync(i => i!.Id == playerId);
             if (player is null)
             {

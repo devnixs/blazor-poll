@@ -17,4 +17,6 @@ public class QuestionChoice
     
     [ForeignKey(nameof(QuestionId))]
     public Question? Question { get; set; }
+    
+    public bool IsValid { get; set; }
 }

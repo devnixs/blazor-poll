@@ -9,11 +9,15 @@ public class Answer
     public int Id { get; set; }
 
     public DateTimeOffset Date { get; set; }
+    public TimeSpan AnswerTime { get; set; }
+    
+    public int Score { get; set; }
 
     public int QuestionId { get; set; }
 
     [ForeignKey(nameof(QuestionId))]
     public Question? Question { get; set; }
+    
     
     public int ChoiceId { get; set; }
 
