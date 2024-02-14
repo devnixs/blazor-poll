@@ -11,11 +11,18 @@ public class Game
     
     public DateTimeOffset StartDate { get; set; }
 
+    public string Name { get; set; }
+    
     public GameState State { get; set; }
     public bool IsCurrent { get; set; }
     
     public ICollection<Question> Questions { get; set; }
     public ICollection<Player> Players { get; set; }
+    
+    public override string ToString()
+    {
+        return $"{Name}";
+    }
 }
 
 public enum GameState

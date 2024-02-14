@@ -1,75 +1,75 @@
 ﻿@page "/admin"
 @using Poll.DAL.Entities
-@using Poll.DAL
-@using Microsoft.EntityFrameworkCore
-@using Poll.DAL.Services
+@using Poll.Events
 @using Poll.Services
-@inject ILogger<Admin> Logger
-@inject AppSynchronizer Synchronizer
-@inject DatabaseReadContextProvider DatabaseReadContextProvider
+@inject ILogger<Home> AdminLogger
+@inherits Poll.Components.Components.BaseRefreshableComponent
 
 <PageTitle>Admin</PageTitle>
 
 <h1>Questions</h1>
 
-@if (currentQuestion == null)
+CurrentGame: @CurrentGame <br/>
+
+@if (CurrentGame == null)
 {
     <p>Chargement...</p>
 }
 else
 {
-    <p role="status">Current question: @currentQuestion.Content</p>
+    <strong>@CurrentGame.Name (@CurrentGame.State)</strong>
+
+    @for (var index = 0; index < CurrentGame.Questions.ToArray().Length; index++)
+    {
+        var question = CurrentGame.Questions.ToArray()[index];
+        <div class="mt-4">
+            @if (question.IsCurrent)
+            {
+                <strong>[@(index+1)] @question.Content</strong>
+            }
+            else
+            {
+                <div>[@(index+1)] @question.Content</div>
+            }
+
+            @foreach (var choice in question.Choices)
+            {
+                <div>@choice.Content</div>
+            }
+        </div>
+    }
+    
+    <button @onclick="Next">Next</button>
 }
 
-<button class="btn btn-primary" @onclick="GoToNextQuestion">Next</button>
 
 @code {
-    Question? currentQuestion = null;
-
-    protected override async Task OnInitializedAsync()
+    private async Task Next()
     {
-        await Refresh();
-    }
-
-    private async Task Refresh()
-    {
-        currentQuestion = await DatabaseReadContextProvider.Read<PollContext, Question?>(async db => await db.Questions.FirstOrDefaultAsync(i => i.Game.IsCurrent && i.IsCurrent));
-    }
-
-    private async Task GoToNextQuestion()
-    {
-        using var ctx = DbContextProvider.ProvidePollContext(out var db);
-        currentQuestion = await db.Questions.FirstAsync(i => i.IsCurrent);
-        var next = await db.Questions
-            .Where(i => i.Index > currentQuestion.Index)
-            .OrderBy(i => i.Index)
-            .FirstOrDefaultAsync();
-
-        Question q;
-        if (next != null)
+        await DatabaseWriteContextProvider.Write<GameService, int>(async svc =>
         {
-            Logger.LogInformation("Switching to question #" + next.Index);
-            currentQuestion.IsCurrent = false;
-            next.IsCurrent = true;
-            q = next;
-        }
-        else
-        {
-            Logger.LogInformation("Switching back to first question");
-            var first = await db.Questions
-                .OrderBy(i => i.Index)
-                .FirstAsync();
+            if (CurrentGame is null)
+            {
+                return 0; 
+            }
+            
+            if (CurrentGame.State == GameState.InPreparation)
+            {
+                await svc.SetGameWaitingForPlayers(CurrentGame.Id);
+            }else if (CurrentGame.State == GameState.WaitingForPlayers)
+            {
+                await svc.StartGame(CurrentGame.Id);
+            }else if (CurrentGame.State == GameState.DisplayQuestionResult)
+            {
+                await svc.MoveToNextQuestion();
+            }else if (CurrentGame.State == GameState.AskingQuestion)
+            {
+                await svc.ValidateQuestion();
+            }
 
-            currentQuestion.IsCurrent = false;
-            first.IsCurrent = true;
-            q = first;
-        }
-
-        await db.SaveChangesAsync();
-
-        Synchronizer.OnQuestionChanged(q);
-
-        await Refresh();
+            return 0;
+        });
     }
 
+    protected override ILogger Logger => AdminLogger;
 }

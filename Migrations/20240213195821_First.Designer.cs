@@ -12,7 +12,7 @@ using Poll.DAL;
 namespace Poll.Migrations
 {
     [DbContext(typeof(PollContext))]
-    [Migration("20240213162530_First")]
+    [Migration("20240213195821_First")]
     partial class First
     {
         /// <inheritdoc />
@@ -75,6 +75,10 @@ namespace Poll.Migrations
 
                     b.Property<bool>("IsCurrent")
                         .HasColumnType("boolean");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasColumnType("text");
 
                     b.Property<DateTimeOffset>("StartDate")
                         .HasColumnType("timestamp with time zone");

@@ -4,60 +4,33 @@ namespace Poll.Services;
 
 public class AppSynchronizer
 {
-    private List<Action<Question>> QuestionChangedHandlers = new();
-    private List<Action<Answer>> NewAnswerHandlers = new();
+    public readonly string Instance = Guid.NewGuid().ToString();
+    
+    private List<Action> StateChangedHandlers = new();
 
-    public void SubscribeQuestionChanged(Action<Question> handler)
+    public void SubscribeStateChanged(Action handler)
     {
-        lock (QuestionChangedHandlers)
+        lock (StateChangedHandlers)
         {
-            QuestionChangedHandlers.Add(handler);
+            StateChangedHandlers.Add(handler);
         }
     }
     
-    public void UnsubscribeQuestionChanged(Action<Question> handler)
+    public void UnsubscribeStateChanged(Action handler)
     {
-        lock (QuestionChangedHandlers)
+        lock (StateChangedHandlers)
         {
-            QuestionChangedHandlers.Remove(handler);
+            StateChangedHandlers.Remove(handler);
         }
     }
     
-    public virtual void OnQuestionChanged(Question q)
+    public virtual void OnStateChanged()
     {
-        lock (QuestionChangedHandlers)
+        lock (StateChangedHandlers)
         {
-            foreach (var handlers in QuestionChangedHandlers)
+            foreach (var handlers in StateChangedHandlers)
             {
-                handlers(q);
-            }
-        }
-    }
-    
-    
-    public void SubscribeNewAnswer(Action<Answer> handler)
-    {
-        lock (NewAnswerHandlers)
-        {
-            NewAnswerHandlers.Add(handler);
-        }
-    }
-    
-    public void UnsubscribeNewAnswer(Action<Answer> handler)
-    {
-        lock (NewAnswerHandlers)
-        {
-            NewAnswerHandlers.Remove(handler);
-        }
-    }
-
-    public virtual void OnNewAnswer(Answer e)
-    {
-        lock (NewAnswerHandlers)
-        {
-            foreach (var handlers in NewAnswerHandlers)
-            {
-                handlers(e);
+                handlers();
             }
         }
     }

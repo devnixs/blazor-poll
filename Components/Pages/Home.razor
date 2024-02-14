@@ -1,36 +1,39 @@
 ﻿@page "/"
-@using Poll.DAL.Entities
 @using Poll.Services
-@using Poll.DAL
-@using Microsoft.EntityFrameworkCore
+@using Poll.DAL.Entities
 
-@inject AppSynchronizer Synchronizer
-@implements IDisposable
-@inject ILogger<Home> Logger
 @inject HttpUtils httpUtils
 @inject PlayerService PlayerService
 @inject NavigationManager NavigationManager
-@inject DbContextProvider DbContextProvider
+@inject ILogger<Home> HomeLogger
+@inherits Poll.Components.Components.BaseRefreshableComponent
 
 <PageTitle>Home</PageTitle>
-@if (currentQuestion == null)
+@if (CurrentQuestion == null || CurrentGame == null || CurrentGame.State == GameState.InPreparation)
 {
     <h1>
-        Chargement...
+        Le jeu va bientôt démarrer, merci de patienter!
     </h1>
 }
 else
 {
     <h1>
-        @currentQuestion.Content
+        @CurrentQuestion.Content
     </h1>
+    
+    <div class="question-container">
+        @for (var index = 0; index < CurrentQuestion.Choices.ToArray().Length; index++)
+        {
+            var choice = CurrentQuestion.Choices.ToArray()[index];
+            <div class="question question-@index">@choice.Content</div>
+        }
+    </div>
+    
 }
 
 @code {
-    Question? currentQuestion = null;
-    CancellationTokenSource cts = new CancellationTokenSource();
-    SemaphoreSlim semaphore = new SemaphoreSlim(0);
-
+    protected override ILogger Logger => HomeLogger;
+    
     protected override async Task OnInitializedAsync()
     {
         if (await httpUtils.IsPreRendering())
@@ -45,41 +48,8 @@ else
             Logger.LogInformation("Player doesn't exist. Redirecting.");
             NavigationManager.NavigateTo("/create-player");
         }
-        
-        Synchronizer.SubscribeQuestionChanged(QuestionChanged);
 
-        _ = Loop();
-        await Refresh();
+        await base.OnInitializedAsync();
     }
 
-    private void QuestionChanged(Question q)
-    {
-        Logger.LogInformation("Question Changed " + q.Content);
-        semaphore.Release();
-    }
-
-    private async Task Loop()
-    {
-        while (!cts.Token.IsCancellationRequested)
-        {
-            await semaphore.WaitAsync();
-
-            await Refresh();
-        }
-    }
-    
-    private async Task Refresh()
-    {
-        Logger.LogInformation("Refreshing");
-        
-        using var ctx = DbContextProvider.ProvidePollContext(out var db);
-        currentQuestion = await db.Questions.FirstAsync(i => i.IsCurrent);
-        StateHasChanged();
-    }
-
-    public void Dispose()
-    {
-        Synchronizer.UnsubscribeQuestionChanged(QuestionChanged);
-        cts.Cancel();
-    }
 }

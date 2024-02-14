@@ -1,9 +1,10 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using Poll.DAL.Entities;
+using Poll.Services.Abstractions;
 
 namespace Poll.DAL;
 
-public class DbSeeder : IHostedService
+public class DbSeeder : IInitializer
 {
     private readonly IServiceProvider _svc;
     private readonly ILogger<DbSeeder> _logger;
@@ -14,11 +15,11 @@ public class DbSeeder : IHostedService
         _logger = logger;
     }
 
-    public async Task StartAsync(CancellationToken cancellationToken)
+    public async Task OnInitialize()
     {
-        using var scope = _svc.CreateAsyncScope();
+        await using var scope = _svc.CreateAsyncScope();
         var db = scope.ServiceProvider.GetRequiredService<PollContext>();
-        var isSeeded = await db.Questions.AnyAsync(cancellationToken: cancellationToken);
+        var isSeeded = await db.Questions.AnyAsync();
 
         if (!isSeeded)
         {
@@ -29,17 +30,11 @@ public class DbSeeder : IHostedService
             _logger.LogInformation("Database is already seeded");
         }
     }
-
+    
     private async Task Seed(PollContext pollContext)
     {
         _logger.LogInformation("Starting seeding");
-        var any = await pollContext.Questions.AnyAsync();
-        if (any)
-        {
-            _logger.LogInformation("Database already seeded");
-            return;
-        }
-        
+
         var question0 = new Question()
         {
             Content = "Au sud de quel continent est situé le cap de Bonne-Espérance ?",
@@ -48,6 +43,7 @@ public class DbSeeder : IHostedService
                 new QuestionChoice()
                 {
                     Content = "Le continent africain",
+                    IsValid = true,
                 },
                 new QuestionChoice()
                 {
@@ -67,15 +63,16 @@ public class DbSeeder : IHostedService
             {
                 new QuestionChoice()
                 {
-                    Content = "Tokyo",
-                },
-                new QuestionChoice()
-                {
                     Content = "New Delhi",
                 },
                 new QuestionChoice()
                 {
                     Content = "Shanghai",
+                },
+                new QuestionChoice()
+                {
+                    Content = "Tokyo",
+                    IsValid = true,
                 },
                 new QuestionChoice()
                 {
@@ -96,6 +93,7 @@ public class DbSeeder : IHostedService
                 new QuestionChoice()
                 {
                     Content = "Bray-Dunes",
+                    IsValid = true,
                 },
                 new QuestionChoice()
                 {
@@ -120,6 +118,7 @@ public class DbSeeder : IHostedService
                 new QuestionChoice()
                 {
                     Content = "Le Kilimandjaro",
+                    IsValid = true,
                 },
                 new QuestionChoice()
                 {
@@ -152,6 +151,7 @@ public class DbSeeder : IHostedService
                 new QuestionChoice()
                 {
                     Content = "Bruxelles",
+                    IsValid = true,
                 },
             },
         };
@@ -176,6 +176,7 @@ public class DbSeeder : IHostedService
                 new QuestionChoice()
                 {
                     Content = "Le lac Baïkal (Sibérie)",
+                    IsValid = true,
                 },
             },
         };
@@ -195,6 +196,7 @@ public class DbSeeder : IHostedService
             StartDate = DateTimeOffset.UtcNow,
             State = GameState.InPreparation,
             IsCurrent = true,
+            Name = "Quizz Géographie"
         };
 
         for (var index = 0; index < questions.Length; index++)

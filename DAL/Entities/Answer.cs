@@ -18,7 +18,6 @@ public class Answer
     [ForeignKey(nameof(QuestionId))]
     public Question? Question { get; set; }
     
-    
     public int ChoiceId { get; set; }
 
     [ForeignKey(nameof(QuestionId))]
@@ -33,4 +32,9 @@ public class Answer
     
     [ForeignKey(nameof(PlayerId))]
     public Player? Player { get; set; }
+    
+    public override string ToString()
+    {
+        return $"{Player?.Name} -> {Question?.Content} -> {Choice?.Content}";
+    }
 }

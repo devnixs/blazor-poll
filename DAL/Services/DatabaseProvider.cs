@@ -30,6 +30,9 @@ public class DatabaseWriteContextProvider
             var result = await func(innerScope.ServiceProvider.GetRequiredService<T>());
             await db.SaveChangesAsync();
             await transaction.CommitAsync();
+            var ctx = innerScope.ServiceProvider.GetRequiredService<TransactionContext>();
+            var logger = innerScope.ServiceProvider.GetRequiredService<ILogger<DatabaseWriteContextProvider>>();
+            await ctx.OnAfterCommit(logger);
             return result;
         });
     }

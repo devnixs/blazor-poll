@@ -19,4 +19,9 @@ public class QuestionChoice
     public Question? Question { get; set; }
     
     public bool IsValid { get; set; }
+    
+    public override string ToString()
+    {
+        return $"{Content} (#{Index})";
+    }
 }

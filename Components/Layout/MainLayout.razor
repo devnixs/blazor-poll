@@ -1,23 +1,25 @@
 ﻿@using Poll.Services
-@inherits LayoutComponentBase
+@using Poll.DAL.Entities
+@inherits Poll.Components.Components.BaseRefreshableComponent
 @inject HttpUtils HttpUtils
-@inject ILogger<MainLayout> Logger
+@inject ILogger<MainLayout> LayoutLogger
 @inject PlayerService PlayerService
 @implements IDisposable
 
 <div class="page">
-    <div class="sidebar">
-        <NavMenu/>
-    </div>
-
     <main>
         <div class="top-row px-4">
-            <a>Virginie et Raphael 2024</a>
-
-            @if (!string.IsNullOrEmpty(playerName))
+            @if (CurrentGame is not null && CurrentGame.State != GameState.InPreparation)
             {
-                <a href="/create-player">Bonjour <strong>@playerName</strong> <i class="fa fa-pencil ml-3"></i></a>
+                <span>@CurrentGame.Name</span>
             }
+
+            <div class="text-right">
+                @if (!string.IsNullOrEmpty(playerName))
+                {
+                    <a href="/create-player">Bonjour <strong>@playerName</strong> <i class="fa fa-pencil ml-3"></i></a>
+                }
+            </div>
         </div>
 
         <article class="content px-4">
@@ -34,6 +36,9 @@
 
 
 @code {
+    [Parameter]
+    public RenderFragment? Body { get; set; }
+    
     string? playerName = null;
     CancellationTokenSource cts = new CancellationTokenSource();
     SemaphoreSlim semaphore = new SemaphoreSlim(0);
@@ -51,6 +56,8 @@
         await LoadPlayer();
         
         _ = Loop();
+
+        await base.OnInitializedAsync();
     }
 
 
@@ -88,4 +95,6 @@
         Logger.LogInformation("Named Changed");
         semaphore.Release();
     }
+
+    protected override ILogger Logger => LayoutLogger;
 }

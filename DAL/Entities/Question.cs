@@ -19,4 +19,9 @@ public class Question
     public bool IsCurrent { get; set; }
     
     public ICollection<QuestionChoice> Choices { get; set; }
+
+    public override string ToString()
+    {
+        return $"{Content} (#{Index})";
+    }
 }
