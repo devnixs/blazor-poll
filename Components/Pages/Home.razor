@@ -1,6 +1,8 @@
 ﻿@page "/"
 @using Poll.Services
 @using Poll.DAL.Entities
+@using Poll.DAL
+@using Microsoft.EntityFrameworkCore
 
 @inject HttpUtils httpUtils
 @inject PlayerService PlayerService
@@ -11,29 +13,37 @@
 <PageTitle>Home</PageTitle>
 @if (CurrentQuestion == null || CurrentGame == null || CurrentGame.State == GameState.InPreparation)
 {
-    <h1>
+    <h1 class="text-center">
         Le jeu va bientôt démarrer, merci de patienter!
     </h1>
 }
 else
 {
-    <h1>
+    <h1 class="text-center mb-5">
         @CurrentQuestion.Content
     </h1>
-    
-    <div class="question-container">
-        @for (var index = 0; index < CurrentQuestion.Choices.ToArray().Length; index++)
-        {
-            var choice = CurrentQuestion.Choices.ToArray()[index];
-            <div class="question question-@index">@choice.Content</div>
-        }
-    </div>
-    
+
+        <div class="question-container">
+            @for (var index = 0; index < CurrentQuestion.Choices.ToArray().Length; index++)
+            {
+                var choice = CurrentQuestion.Choices.ToArray()[index];
+                <div
+                    @onclick="()=>OnSelectChoice(choice.Id)"
+                    @key="choice.Id"
+                    class="question question-@index @(Answer != null ? (Answer.ChoiceId == choice.Id ? "selected": "not-selected") : "")">
+                    <div class="question-inner">
+                        @choice.Content
+                    </div>
+                </div>
+            }
+        </div>
 }
 
 @code {
     protected override ILogger Logger => HomeLogger;
-    
+    protected Answer? Answer = null;
+    protected Player? Player = null;
+
     protected override async Task OnInitializedAsync()
     {
         if (await httpUtils.IsPreRendering())
@@ -41,15 +51,46 @@ else
             Logger.LogInformation("Skipped: Prerendering");
             return;
         }
-        
-        var player = await PlayerService.GetPlayer();
-        if (player is null)
+
+        this.Player = await PlayerService.GetPlayer();
+        if (Player is null)
         {
             Logger.LogInformation("Player doesn't exist. Redirecting.");
             NavigationManager.NavigateTo("/create-player");
         }
 
         await base.OnInitializedAsync();
+    }
+    
+    protected async Task OnSelectChoice(int choiceId)
+    {
+        if (Answer is not null || CurrentQuestion is null || CurrentGame is null || Player is null)
+        {
+            return;
+        }
+
+        Answer = new Answer()
+        {
+            ChoiceId = choiceId,
+        };
+        
+        StateHasChanged();
+        
+        Answer = await DatabaseWriteContextProvider.Write<GameService, Answer?>(
+            async svc => await svc.PlayerSelectsAnswer(Player.Id, choiceId));
+    }
+
+    protected override async Task AfterRefresh(bool isFirst)
+    {
+        if (this.CurrentQuestion is null || this.CurrentGame is null || Player is null)
+        {
+            return;
+        }
+        
+        Answer = await DatabaseReadContextProvider.Read<PollContext, Answer?>(async db =>
+        {
+            return await db.Answers.FirstOrDefaultAsync(i => i.QuestionId == CurrentQuestion.Id && i.PlayerId == Player.Id);
+        });
     }
 
 }

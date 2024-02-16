@@ -32,7 +32,7 @@ public abstract class BaseRefreshableComponent : ComponentBase, IDisposable
         AppSynchronizer.SubscribeStateChanged(OnStateChanged);
 
         _ = Loop();
-        await Refresh();
+        await Refresh(isFirstRefresh : true);
         
         await base.OnInitializedAsync();
     }
@@ -43,10 +43,10 @@ public abstract class BaseRefreshableComponent : ComponentBase, IDisposable
         {
             await semaphore.WaitAsync();
 
-            await Refresh();
+            await Refresh(isFirstRefresh: false);
         }
     }
-    private async Task Refresh()
+    private async Task Refresh(bool isFirstRefresh)
     {
         Logger.LogInformation("Refreshing");
 
@@ -56,6 +56,8 @@ public abstract class BaseRefreshableComponent : ComponentBase, IDisposable
             CurrentGame = cache.GetCurrentGame();
             return 0;
         });
+
+        await AfterRefresh(isFirstRefresh);
         
         StateHasChanged();
     }
@@ -77,5 +79,10 @@ public abstract class BaseRefreshableComponent : ComponentBase, IDisposable
         cts.Dispose();
         semaphore.Dispose();
         AppSynchronizer.UnsubscribeStateChanged(OnStateChanged);
+    }
+
+    protected virtual Task AfterRefresh(bool isFirst)
+    {
+        return Task.CompletedTask;
     }
 }

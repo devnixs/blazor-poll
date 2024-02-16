@@ -20,7 +20,7 @@ public class GameService
         _transactionContext = transactionContext;
     }
 
-    public async Task PlayerSelectsAnswer(int playerId, int questionChoiceId)
+    public async Task<Answer> PlayerSelectsAnswer(int playerId, int questionChoiceId)
     {
         var questionChoice = await _pollContext.QuestionChoices
             .Where(i => i.Id == questionChoiceId)
@@ -42,7 +42,7 @@ public class GameService
 
         var now = DateTimeOffset.UtcNow;
         var questionStartTime = questionChoice.QuestionStartTime ?? now;
-        _pollContext.Answers.Add(new Answer()
+        var answer = new Answer()
         {
             ChoiceId = questionChoiceId,
             PlayerId = playerId,
@@ -50,7 +50,10 @@ public class GameService
             AnswerTime = now - questionStartTime,
             GameId = questionChoice.GameId,
             Date = now,
-        });
+        };
+        _pollContext.Answers.Add(answer);
+
+        return answer;
     }
     
     public async Task SetGameWaitingForPlayers(int gameId)

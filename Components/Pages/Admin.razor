@@ -3,13 +3,36 @@
 @using Poll.Events
 @using Poll.Services
 @inject ILogger<Home> AdminLogger
+@inject GameStateCache GameStateCache
 @inherits Poll.Components.Components.BaseRefreshableComponent
 
 <PageTitle>Admin</PageTitle>
 
-<h1>Questions</h1>
+<div class="d-flex justify-content-between">
+    <h1>Questions</h1>
 
-CurrentGame: @CurrentGame <br/>
+    <div>
+        @if (CurrentGame is not null)
+        {
+            <button class="btn btn-outline-success me-2" @onclick="Next">
+                Next
+                <i class="fa fa-arrow-right fa-fw"></i>
+            </button>
+        }
+
+        <button class="btn btn-outline-primary" @onclick="RefreshState" disabled="@_refreshing">
+            Refresh state
+            @if (_refreshing)
+            {
+                <i class="fa fa-refresh fa-spin fa-fw"></i>
+            }
+            else
+            {
+                <i class="fa fa-bolt fa-fw"></i>
+            }
+        </button>
+    </div>
+</div>
 
 @if (CurrentGame == null)
 {
@@ -25,11 +48,11 @@ else
         <div class="mt-4">
             @if (question.IsCurrent)
             {
-                <strong>[@(index+1)] @question.Content</strong>
+                <strong>[@(index + 1)] @question.Content</strong>
             }
             else
             {
-                <div>[@(index+1)] @question.Content</div>
+                <div>[@(index + 1)] @question.Content</div>
             }
 
             @foreach (var choice in question.Choices)
@@ -38,37 +61,55 @@ else
             }
         </div>
     }
-    
-    <button @onclick="Next">Next</button>
 }
 
 
 @code {
+
     private async Task Next()
     {
         await DatabaseWriteContextProvider.Write<GameService, int>(async svc =>
         {
             if (CurrentGame is null)
             {
-                return 0; 
+                return 0;
             }
-            
+
             if (CurrentGame.State == GameState.InPreparation)
             {
                 await svc.SetGameWaitingForPlayers(CurrentGame.Id);
-            }else if (CurrentGame.State == GameState.WaitingForPlayers)
+            }
+            else if (CurrentGame.State == GameState.WaitingForPlayers)
             {
                 await svc.StartGame(CurrentGame.Id);
-            }else if (CurrentGame.State == GameState.DisplayQuestionResult)
+            }
+            else if (CurrentGame.State == GameState.DisplayQuestionResult)
             {
                 await svc.MoveToNextQuestion();
-            }else if (CurrentGame.State == GameState.AskingQuestion)
+            }
+            else if (CurrentGame.State == GameState.AskingQuestion)
             {
                 await svc.ValidateQuestion();
             }
 
             return 0;
         });
+    }
+
+    bool _refreshing = false;
+
+    private async Task RefreshState()
+    {
+        _refreshing = true;
+        StateHasChanged();
+        try
+        {
+            await GameStateCache.Refresh();
+        }
+        finally
+        {
+            _refreshing = false;
+        }
     }
 
     protected override ILogger Logger => AdminLogger;
