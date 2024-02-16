@@ -11,6 +11,8 @@ public class Player
     
     public int Score { get; set; }
     
+    public DateTimeOffset HeartBeat { get; set; }
+    
     public override string ToString()
     {
         return $"{Name}";

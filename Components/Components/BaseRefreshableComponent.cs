@@ -73,7 +73,7 @@ public abstract class BaseRefreshableComponent : ComponentBase, IDisposable
         semaphore.Release();
     }
 
-    public void Dispose()
+    public virtual void Dispose()
     {
         _disposed = true;
         cts.Dispose();

@@ -7,36 +7,64 @@
 @inject HttpUtils httpUtils
 @inject PlayerService PlayerService
 @inject NavigationManager NavigationManager
+@inject GameStateCache GameStateCache
 @inject ILogger<Home> HomeLogger
 @inherits Poll.Components.Components.BaseRefreshableComponent
+@implements IDisposable
 
 <PageTitle>Home</PageTitle>
-@if (CurrentQuestion == null || CurrentGame == null || CurrentGame.State == GameState.InPreparation)
+
+@if (CurrentGame is not null && CurrentGame.State == GameState.Completed)
+{
+    <div>TODO: afficher les scores</div>
+}
+else if (CurrentQuestion == null || CurrentGame == null || CurrentGame.State == GameState.InPreparation)
 {
     <h1 class="text-center">
         Le jeu va bientôt démarrer, merci de patienter!
     </h1>
 }
-else
+else if (CurrentGame.State == GameState.AskingQuestion)
 {
     <h1 class="text-center mb-5">
         @CurrentQuestion.Content
     </h1>
 
-        <div class="question-container">
-            @for (var index = 0; index < CurrentQuestion.Choices.ToArray().Length; index++)
-            {
-                var choice = CurrentQuestion.Choices.ToArray()[index];
-                <div
-                    @onclick="()=>OnSelectChoice(choice.Id)"
-                    @key="choice.Id"
-                    class="question question-@index @(Answer != null ? (Answer.ChoiceId == choice.Id ? "selected": "not-selected") : "")">
-                    <div class="question-inner">
-                        @choice.Content
-                    </div>
+    <div class="question-container">
+        @for (var index = 0; index < CurrentQuestion.Choices.ToArray().Length; index++)
+        {
+            var choice = CurrentQuestion.Choices.ToArray()[index];
+            <div
+                @onclick="() => OnSelectChoice(choice.Id)"
+                @key="choice.Id"
+                class="question question-@index @(Answer != null ? (Answer.ChoiceId == choice.Id ? "selected" : "not-selected") : "")">
+                <div class="question-inner">
+                    @choice.Content
                 </div>
-            }
+            </div>
+        }
+    </div>
+}
+else if (CurrentGame.State == GameState.DisplayQuestionResult)
+{
+    <h1 class="text-center mb-5">
+        @CurrentQuestion.Content
+    </h1>
+    if (Answer is null || !Answer.IsValid)
+    {
+        <div class="answer-container answer-failure bg-danger">
+            <i class="fa fa-times fa-3x" aria-hidden="true"></i>
+            <div>La bonne réponse était </div>
+            <div class="fw-bold mt-1"> @(CurrentQuestion.Choices.FirstOrDefault(i => i.IsValid)?.Content ?? "?")</div>
         </div>
+    }
+    else
+    {
+        <div class="answer-container answer-success bg-success">
+            <i class="fa fa-check fa-4x" aria-hidden="true"></i>
+            <div class="mt-2">Vous marquez @Answer.Score points</div>
+        </div>
+    }
 }
 
 @code {
@@ -44,6 +72,17 @@ else
     protected Answer? Answer = null;
     protected Player? Player = null;
 
+    private Timer? _timer;
+
+    private void HeartBeat()
+    {
+        if (Player is null)
+        {
+            return;
+        }
+        GameStateCache.PlayerHeartBeat(Player.Id);
+    }
+    
     protected override async Task OnInitializedAsync()
     {
         if (await httpUtils.IsPreRendering())
@@ -59,9 +98,11 @@ else
             NavigationManager.NavigateTo("/create-player");
         }
 
+        _timer = new Timer(_ => HeartBeat(), null, TimeSpan.Zero, TimeSpan.FromSeconds(10));
+
         await base.OnInitializedAsync();
     }
-    
+
     protected async Task OnSelectChoice(int choiceId)
     {
         if (Answer is not null || CurrentQuestion is null || CurrentGame is null || Player is null)
@@ -73,9 +114,9 @@ else
         {
             ChoiceId = choiceId,
         };
-        
+
         StateHasChanged();
-        
+
         Answer = await DatabaseWriteContextProvider.Write<GameService, Answer?>(
             async svc => await svc.PlayerSelectsAnswer(Player.Id, choiceId));
     }
@@ -84,13 +125,18 @@ else
     {
         if (this.CurrentQuestion is null || this.CurrentGame is null || Player is null)
         {
+            Answer = null;
             return;
         }
-        
-        Answer = await DatabaseReadContextProvider.Read<PollContext, Answer?>(async db =>
-        {
-            return await db.Answers.FirstOrDefaultAsync(i => i.QuestionId == CurrentQuestion.Id && i.PlayerId == Player.Id);
-        });
+
+        Answer = GameStateCache.GetCurrentAnswer(Player.Id);
+        Player = GameStateCache.GetPlayer(Player.Id);
+    }
+
+    public override void Dispose()
+    {
+        _timer?.Dispose();
+        base.Dispose();
     }
 
 }

@@ -23,6 +23,8 @@ public class Answer
     [ForeignKey(nameof(QuestionId))]
     public QuestionChoice? Choice { get; set; }
     
+    public bool IsValid { get; set; }
+    
     public int GameId { get; set; }
     
     [ForeignKey(nameof(GameId))]

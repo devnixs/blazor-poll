@@ -77,6 +77,7 @@ public class PlayerService
                     var entity = new Player()
                     {
                         Name = name,
+                        HeartBeat = DateTimeOffset.UtcNow,
                     };
 
                     db.Players.Add(entity);
@@ -94,6 +95,7 @@ public class PlayerService
                         player = new Player()
                         {
                             Name = name,
+                            HeartBeat = DateTimeOffset.UtcNow,
                         };
                         db.Add(player);
                     }

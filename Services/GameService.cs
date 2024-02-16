@@ -29,6 +29,7 @@ public class GameService
                 GameId = i.Question.GameId,
                 QuestionId = i.QuestionId,
                 QuestionStartTime = i.Question.StartTime,
+                IsValid = i.IsValid,
             })
             .SingleAsync();
         
@@ -50,6 +51,7 @@ public class GameService
             AnswerTime = now - questionStartTime,
             GameId = questionChoice.GameId,
             Date = now,
+            IsValid = questionChoice.IsValid,
         };
         _pollContext.Answers.Add(answer);
 
@@ -80,6 +82,9 @@ public class GameService
             await FinishGame(currentGame);
         }
 
+        var players = await _pollContext.Players.ToArrayAsync();
+        players.ForEach(i=>i.Score = 0);
+        
         var game = await _pollContext.Games.Include(i=>i.Questions).SingleAsync(i => i.Id == gameId);
         game.IsCurrent = true;
         game.State = GameState.AskingQuestion;
@@ -87,6 +92,7 @@ public class GameService
         var firstQuestion = game.Questions.OrderBy(i => i.Index).First();
         firstQuestion.IsCurrent = true;
         await _domainEvents.TriggerEvent(new QuestionChangedEvent());
+
     }
 
     public async Task QuestionTimerEnds()
@@ -134,7 +140,7 @@ public class GameService
         
         currentGame.State = GameState.DisplayQuestionResult;
         var currentQuestion = await _pollContext.Games.SingleAsync(i => i.IsCurrent);
-        await ComputeScores(currentQuestion.Id);
+        await ComputeScores(currentQuestion.Id, currentGame.Id);
 
         await _domainEvents.TriggerEvent(new QuestionValidatedEvent());
     }
@@ -160,15 +166,34 @@ public class GameService
         else
         {
             questions[current.index + 1].IsCurrent = true;
+            questions[current.index +1].StartTime = DateTimeOffset.UtcNow;
             currentGame.State = GameState.AskingQuestion;
             await _domainEvents.TriggerEvent(new QuestionChangedEvent());
         }
-        
     }
     
-    public async Task ComputeScores(int questionId)
+    public async Task ComputeScores(int questionId, int gameId)
     {
-        // Todo : Compute scores
+        var answers = await _pollContext.Answers.Where(i => i.QuestionId == questionId && i.GameId == gameId).ToArrayAsync();
+        var maxTime = answers.Max(i => i.AnswerTime);
+        var totalSeconds = maxTime.TotalSeconds > 0 ? maxTime.TotalSeconds : 1;
+        var players = await _pollContext.Players.ToDictionaryAsync(i=>i.Id);
+
+        foreach (var answer in answers)
+        {
+            if (answer.IsValid)
+            {
+                answer.Score = (int)Math.Floor(100d + 20d * (1d - answer.AnswerTime.TotalSeconds / totalSeconds));
+                if (players.TryGetValue(answer.PlayerId, out var player))
+                {
+                    player.Score += answer.Score;
+                }
+            }
+            else
+            {
+                answer.Score = 0;
+            }
+        }
     }
     
     private async Task FinishGame(Game game)
