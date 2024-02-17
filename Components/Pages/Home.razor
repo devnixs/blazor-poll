@@ -3,20 +3,21 @@
 @using Poll.DAL.Entities
 @using Poll.DAL
 @using Microsoft.EntityFrameworkCore
+@using Poll.Events
 
 @inject HttpUtils httpUtils
 @inject PlayerService PlayerService
 @inject NavigationManager NavigationManager
 @inject GameStateCache GameStateCache
+@inject AppSynchronizer AppSynchronizer
 @inject ILogger<Home> HomeLogger
 @inherits Poll.Components.Components.BaseRefreshableComponent
-@implements IDisposable
 
 <PageTitle>Home</PageTitle>
 
 @if (CurrentGame is not null && CurrentGame.State == GameState.Completed)
 {
-    <div>TODO: afficher les scores</div>
+    <div class="game-end">🎉</div>
 }
 else if (CurrentQuestion == null || CurrentGame == null || CurrentGame.State == GameState.InPreparation)
 {
@@ -26,7 +27,7 @@ else if (CurrentQuestion == null || CurrentGame == null || CurrentGame.State == 
 }
 else if (CurrentGame.State == GameState.AskingQuestion)
 {
-    <h1 class="text-center mb-5">
+    <h1 class="text-center mb-3 question-title">
         @CurrentQuestion.Content
     </h1>
 
@@ -44,10 +45,18 @@ else if (CurrentGame.State == GameState.AskingQuestion)
             </div>
         }
     </div>
+    @if (AllPlayers.Length >= 2)
+    {
+        var percent = Math.Floor(100 * (double)AnswersCount / (double)AllPlayers.Length);
+        
+        <div class="progress mt-2" role="progressbar" aria-label="Basic example" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100">
+            <div class="progress-bar" style="width: @(percent)%"></div>
+        </div>
+    }
 }
 else if (CurrentGame.State == GameState.DisplayQuestionResult)
 {
-    <h1 class="text-center mb-5">
+    <h1 class="text-center mb-3">
         @CurrentQuestion.Content
     </h1>
     if (Answer is null || !Answer.IsValid)
@@ -67,10 +76,46 @@ else if (CurrentGame.State == GameState.DisplayQuestionResult)
     }
 }
 
+@if (AllPlayers.Any() && Player is not null && CurrentGame is not null)
+{
+    <div class="mt-3">
+        @for (var index = 0; index < AllPlayers.Length; index++)
+        {
+            var p = AllPlayers[index];
+            <div class="score-row @(p.Id == Player.Id ? "fw-bold" : "")">
+                <span class="player-names">
+
+                    @if (index == 0 && p.Score > 100)
+                    {
+                        <span class="me-1">🏆</span>
+                    }
+                    else if(index == 1 && p.Score > 100)
+                    {
+                        <span class="me-1">🔥</span>
+                    }
+                    else if(index == 2 && p.Score > 100)
+                    {
+                        <span class="me-1">💯</span>
+                    }
+
+                    @p.Name.Substring(0, Math.Min(p.Name.Length, 15))
+                </span>
+
+                @if (CurrentGame.State == GameState.Completed || CurrentGame.State == GameState.AskingQuestion || CurrentGame.State == GameState.DisplayQuestionResult)
+                {
+                    <span class="badge bg-primary">@p.Score</span>
+                }
+            </div>
+        }
+    </div>
+}
+
 @code {
     protected override ILogger Logger => HomeLogger;
     protected Answer? Answer = null;
     protected Player? Player = null;
+    protected Player[] AllPlayers = Array.Empty<Player>();
+    protected int AnswersCount = 0;
 
     private Timer? _timer;
 
@@ -80,9 +125,10 @@ else if (CurrentGame.State == GameState.DisplayQuestionResult)
         {
             return;
         }
-        GameStateCache.PlayerHeartBeat(Player.Id);
+
+        GameStateCache.PlayerHeartBeat(Player);
     }
-    
+
     protected override async Task OnInitializedAsync()
     {
         if (await httpUtils.IsPreRendering())
@@ -96,9 +142,16 @@ else if (CurrentGame.State == GameState.DisplayQuestionResult)
         {
             Logger.LogInformation("Player doesn't exist. Redirecting.");
             NavigationManager.NavigateTo("/create-player");
+            return;
         }
 
-        _timer = new Timer(_ => HeartBeat(), null, TimeSpan.Zero, TimeSpan.FromSeconds(10));
+        GameStateCache.SetPlayer(Player);
+
+        _timer = new Timer(_ => HeartBeat(), null, TimeSpan.Zero, TimeSpan.FromSeconds(5));
+
+        AppSynchronizer.SubscribePlayerCountChanged(OnPlayerCountChanged);
+        AppSynchronizer.SubscribeNewAnswer(OnNewAnswer);
+        AllPlayers = GameStateCache.GetAllPlayers();
 
         await base.OnInitializedAsync();
     }
@@ -123,7 +176,7 @@ else if (CurrentGame.State == GameState.DisplayQuestionResult)
 
     protected override async Task AfterRefresh(bool isFirst)
     {
-        if (this.CurrentQuestion is null || this.CurrentGame is null || Player is null)
+        if (CurrentQuestion is null || CurrentGame is null || Player is null)
         {
             Answer = null;
             return;
@@ -131,12 +184,28 @@ else if (CurrentGame.State == GameState.DisplayQuestionResult)
 
         Answer = GameStateCache.GetCurrentAnswer(Player.Id);
         Player = GameStateCache.GetPlayer(Player.Id);
+        AllPlayers = GameStateCache.GetAllPlayers();
+        AnswersCount = GameStateCache.GetAnswersCount();
     }
 
     public override void Dispose()
     {
         _timer?.Dispose();
         base.Dispose();
+        AppSynchronizer.UnsubscribePlayerCountChanged(OnPlayerCountChanged);
+        AppSynchronizer.UnsubscribeNewAnswer(OnNewAnswer);
+    }
+
+    private void OnPlayerCountChanged()
+    {
+        AllPlayers = GameStateCache.GetAllPlayers();
+        InvokeAsync(StateHasChanged);
+    }
+    
+    private void OnNewAnswer()
+    {
+        AnswersCount = GameStateCache.GetAnswersCount();
+        InvokeAsync(StateHasChanged);
     }
 
 }

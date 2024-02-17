@@ -1,6 +1,7 @@
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using Blazored.LocalStorage;
+using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Storage;
@@ -56,7 +57,9 @@ builder.Services.AddTransient<IEventHandler<GameStateChangedEvent>, OnGameStateC
 builder.Services.AddTransient<OnGameStateChanged>();
 builder.Services.AddTransient<IEventHandler<QuestionChangedEvent>, OnQuestionChanged>();
 builder.Services.AddTransient<OnQuestionChanged>();
-
+builder.Services.AddTransient<IEventHandler<PlayersCountChangedEvent>, PlayersCountChangedEventHandler>();
+builder.Services.AddTransient<OnNewAnswer>();
+builder.Services.AddTransient<IEventHandler<NewAnswerEvent>, OnNewAnswer>();
 
 builder.Services.AddHttpContextAccessor();
 

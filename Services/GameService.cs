@@ -55,6 +55,11 @@ public class GameService
         };
         _pollContext.Answers.Add(answer);
 
+        await _domainEvents.TriggerEvent(new NewAnswerEvent()
+        {
+            Answer = answer,
+        });
+
         return answer;
     }
     
@@ -139,7 +144,7 @@ public class GameService
         }
         
         currentGame.State = GameState.DisplayQuestionResult;
-        var currentQuestion = await _pollContext.Games.SingleAsync(i => i.IsCurrent);
+        var currentQuestion = await _pollContext.Questions.Where(i=>i.GameId == currentGame.Id).SingleAsync(i => i.IsCurrent);
         await ComputeScores(currentQuestion.Id, currentGame.Id);
 
         await _domainEvents.TriggerEvent(new QuestionValidatedEvent());
@@ -175,9 +180,15 @@ public class GameService
     public async Task ComputeScores(int questionId, int gameId)
     {
         var answers = await _pollContext.Answers.Where(i => i.QuestionId == questionId && i.GameId == gameId).ToArrayAsync();
+        if (answers.Length == 0)
+        {
+            return;
+        }
+        
         var maxTime = answers.Max(i => i.AnswerTime);
         var totalSeconds = maxTime.TotalSeconds > 0 ? maxTime.TotalSeconds : 1;
-        var players = await _pollContext.Players.ToDictionaryAsync(i=>i.Id);
+        var playerIds = answers.Select(i => i.PlayerId).ToArray();
+        var players = await _pollContext.Players.Where(p=>playerIds.Contains(p.Id)).ToDictionaryAsync(i=>i.Id);
 
         foreach (var answer in answers)
         {
