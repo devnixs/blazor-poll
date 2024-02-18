@@ -60,6 +60,8 @@ builder.Services.AddTransient<OnQuestionChanged>();
 builder.Services.AddTransient<IEventHandler<PlayersCountChangedEvent>, PlayersCountChangedEventHandler>();
 builder.Services.AddTransient<OnNewAnswer>();
 builder.Services.AddTransient<IEventHandler<NewAnswerEvent>, OnNewAnswer>();
+builder.Services.AddTransient<OnPlayerNameChanged>();
+builder.Services.AddTransient<IEventHandler<PlayerNameChangedEvent>, OnPlayerNameChanged>();
 
 builder.Services.AddHttpContextAccessor();
 

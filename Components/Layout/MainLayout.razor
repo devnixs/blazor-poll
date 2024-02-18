@@ -17,7 +17,7 @@
             <div class="text-right">
                 @if (!string.IsNullOrEmpty(playerName))
                 {
-                    <a href="/create-player">Bonjour <strong>@playerName</strong> <i class="fa fa-pencil ml-3"></i></a>
+                    <a href="/create-player"><strong>@playerName</strong> <i class="fa fa-pencil ml-3"></i></a>
                 }
             </div>
         </div>
@@ -72,6 +72,7 @@
         Logger.LogInformation("Loading player");
         var player = await PlayerService.GetPlayer();
         playerName = player?.Name;
+        await InvokeAsync(StateHasChanged);
     }
     
     private async Task Loop()

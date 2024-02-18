@@ -4,6 +4,7 @@ using Microsoft.EntityFrameworkCore.Storage;
 using Poll.DAL;
 using Poll.DAL.Entities;
 using Poll.DAL.Services;
+using Poll.Events;
 
 namespace Poll.Services;
 
@@ -26,6 +27,7 @@ public class PlayerService
     }
 
     private string Key = "PlayerId";
+    private string AdminKey = "IsAdmin";
     private List<Action> NameChangedHandlers = new();
 
     public void SubscribeNameChanged(Action handler)
@@ -67,11 +69,21 @@ public class PlayerService
             async db => await db.Players.SingleOrDefaultAsync(i => i!.Id == playerId));
     }
 
+    public async Task<bool> IsAdmin()
+    {
+        if (!await _localStorage.ContainKeyAsync(AdminKey)) return false;
+
+        return await _localStorage.GetItemAsync<bool>(AdminKey);
+    }
+
     public async Task<Player?> SetPlayerName(string name)
     {
-        var p = await _databaseWriteContextProvider.Write<PollContext, Player?>(
-            async db =>
+        var p = await _databaseWriteContextProvider.Write<IServiceProvider, Player?>(
+            async svc =>
             {
+                var db = svc.GetRequiredService<PollContext>();
+                var domainEvents = svc.GetRequiredService<DomainEvents>();
+                
                 if (!await _localStorage.ContainKeyAsync(Key))
                 {
                     var entity = new Player()
@@ -104,6 +116,10 @@ public class PlayerService
                         player.Name = name;
                     }
 
+                    await domainEvents.TriggerEvent(new PlayerNameChangedEvent()
+                    {
+                        Player = player,
+                    });
                     await db.SaveChangesAsync();
 
                     return player;

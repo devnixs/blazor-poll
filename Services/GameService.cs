@@ -218,4 +218,18 @@ public class GameService
         game.State = GameState.Completed;
         await _domainEvents.TriggerEvent(new GameStateChangedEvent());
     }
+
+    public async Task ResetGame()
+    {
+        var questions = await _pollContext.Questions.ToArrayAsync();
+        var answers = await _pollContext.Answers.ToArrayAsync();
+        var players = await _pollContext.Players.ToArrayAsync();
+        var game = await _pollContext.Games.SingleAsync(i=>i.IsCurrent);
+        
+        questions.ForEach(i=>i.IsCurrent = false);
+        players.ForEach(i=>i.Score = 0);
+        _pollContext.RemoveRange(answers);
+        await _domainEvents.TriggerEvent(new GameStateChangedEvent());
+        game.State = GameState.InPreparation;
+    }
 }

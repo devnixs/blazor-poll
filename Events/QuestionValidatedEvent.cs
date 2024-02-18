@@ -27,3 +27,8 @@ public class PlayersCountChangedEvent
 {
     
 }
+
+public class PlayerNameChangedEvent
+{
+    public Player Player { get; set; }
+}

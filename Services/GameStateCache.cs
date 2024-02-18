@@ -217,4 +217,13 @@ public class GameStateCache : IInitializer, IDisposable
             return _answers.Count;
         }
     }
+
+    public async Task PlayerNameChanged(Player eventDataPlayer)
+    {
+        if (_players.TryGetValue(eventDataPlayer.Id, out var player))
+        {
+            player.Name = eventDataPlayer.Name;
+            await _domainEvents.TriggerEvent(new PlayersCountChangedEvent());
+        }
+    }
 }
