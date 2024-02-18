@@ -18,7 +18,7 @@ public class HttpUtils
             await _runtime.InvokeVoidAsync("jsMethod");
             return false;
         }
-        catch (System.InvalidOperationException)
+        catch (InvalidOperationException)
         {
             return true;
         }

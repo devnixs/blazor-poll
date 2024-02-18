@@ -7,10 +7,7 @@ namespace Poll.DAL;
 public class PollContext : DbContext
 {
     public DbSet<Question> Questions { get; set; }
-    public DbSet<QuestionChoice> QuestionChoices { get; set; }
-    public DbSet<Game> Games { get; set; }
-    public DbSet<Player> Players { get; set; }
-    public DbSet<Answer> Answers { get; set; }
+    public DbSet<GameTemplate> GameTemplates { get; set; }
 
     
     public PollContext(DbContextOptions<PollContext> options) : base(options)

@@ -2,9 +2,9 @@
 @using Poll.DAL.Entities
 @using Poll.Events
 @using Poll.Services
+@using GameState = Poll.Services.GameState
 @inject ILogger<Home> AdminLogger
-@inject GameStateCache GameStateCache
-@inherits Poll.Components.Components.BaseRefreshableComponent
+@inject GameState GameState
 
 <PageTitle>Admin</PageTitle>
 
@@ -75,19 +75,19 @@ else
                 return 0;
             }
 
-            if (CurrentGame.State == GameState.InPreparation)
+            if (CurrentGame.State == GameStatus.InPreparation)
             {
                 await svc.SetGameWaitingForPlayers(CurrentGame.Id);
             }
-            else if (CurrentGame.State == GameState.WaitingForPlayers)
+            else if (CurrentGame.State == GameStatus.WaitingForPlayers)
             {
                 await svc.StartGame(CurrentGame.Id);
             }
-            else if (CurrentGame.State == GameState.DisplayQuestionResult)
+            else if (CurrentGame.State == GameStatus.DisplayQuestionResult)
             {
                 await svc.MoveToNextQuestion();
             }
-            else if (CurrentGame.State == GameState.AskingQuestion)
+            else if (CurrentGame.State == GameStatus.AskingQuestion)
             {
                 await svc.ValidateQuestion();
             }
@@ -104,7 +104,7 @@ else
         StateHasChanged();
         try
         {
-            await GameStateCache.Refresh();
+            await GameState.LoadData();
         }
         finally
         {

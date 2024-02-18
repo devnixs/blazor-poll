@@ -6,17 +6,15 @@ public class Question
 {
     [Key]
     public int Id { get; set; }
-
-    public DateTimeOffset? StartTime { get; set; }
     
     [Required]
+    [StringLength(512)]
     public required string Content { get; set; }
     
-    public Game? Game { get; set; }
-    public int GameId { get; set; }
+    public GameTemplate? GameTemplate { get; set; }
+    public int GameTemplateId { get; set; }
 
     public int Index { get; set; }
-    public bool IsCurrent { get; set; }
     
     public ICollection<QuestionChoice> Choices { get; set; }
 

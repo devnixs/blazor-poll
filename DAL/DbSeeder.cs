@@ -191,11 +191,9 @@ public class DbSeeder : IInitializer
             question5,
         };
 
-        var game = new Game()
+        var game = new GameTemplate()
         {
-            StartDate = DateTimeOffset.UtcNow,
-            State = GameState.InPreparation,
-            IsCurrent = true,
+            CreationDate = DateTimeOffset.UtcNow,
             Name = "Quizz Géographie"
         };
 
@@ -203,7 +201,7 @@ public class DbSeeder : IInitializer
         {
             var question = questions[index];
             question.Index = index;
-            question.Game = game;
+            question.GameTemplate = game;
 
             for (var index2 = 0; index2 < question.Choices.ToArray().Length; index2++)
             {

@@ -1,18 +1,18 @@
-﻿@page "/"
+﻿@page "/game/{GameId}"
 @using Poll.Services
 @using Poll.DAL.Entities
+@using GameState = Poll.Services.GameState
 
-@inject HttpUtils httpUtils
+@inject HttpUtils HttpUtils
 @inject PlayerService PlayerService
 @inject NavigationManager NavigationManager
-@inject GameStateCache GameStateCache
-@inject AppSynchronizer AppSynchronizer
+@inject GameState GameState
 @inject ILogger<Home> HomeLogger
 @inherits Poll.Components.Components.BaseRefreshableComponent
 
 <PageTitle>Home</PageTitle>
 
-@if (IsAdmin)
+@if (_isAdmin)
 {
     <div class="text-end mb-1">
         <button class="btn btn-outline-success me-2" @onclick="Next">
@@ -22,87 +22,104 @@
     </div>
 }
 
+<SectionContent SectionName="top-bar">
+    @if (CurrentGame is not null)
+    {
+        <span>@CurrentGame.Template.Name</span>
+    }
+
+    <div class="text-right">
+        @if (!string.IsNullOrEmpty(_player?.Name))
+        {
+            <a href="/create-player">
+                <strong>@_player?.Name</strong> <i class="fa fa-pencil ml-3"></i>
+            </a>
+        }
+    </div>
+</SectionContent>
+
+
 <div class="row">
     <div class="col-12 col-md-8">
         <div>
-            @if (CurrentGame is not null && CurrentGame.State == GameState.Completed)
+            @if (CurrentGame is not null && CurrentGame.Status == GameStatus.Completed)
             {
                 <div class="game-end">🎉</div>
             }
-            else if (CurrentQuestion == null || CurrentGame == null || CurrentGame.State == GameState.InPreparation)
+            else if (CurrentGame == null || CurrentGame.CurrentQuestion == null || CurrentGame.Status == GameStatus.WaitingForPlayers)
             {
                 <h1 class="text-center">
                     Le jeu va bientôt démarrer, merci de patienter!
                 </h1>
             }
-            else if (CurrentGame.State == GameState.AskingQuestion)
+            else if (CurrentGame.Status == GameStatus.AskingQuestion)
             {
                 <h1 class="text-center mb-3 question-title">
-                    @CurrentQuestion.Content
+                    @CurrentGame.CurrentQuestion.Content
                 </h1>
 
                 <div class="question-container">
-                    @for (var index = 0; index < CurrentQuestion.Choices.ToArray().Length; index++)
+                    @for (var index = 0; index < CurrentGame.CurrentQuestion.Choices.ToArray().Length; index++)
                     {
-                        var choice = CurrentQuestion.Choices.ToArray()[index];
+                        var choice = CurrentGame.CurrentQuestion.Choices.ToArray()[index];
                         <div
                             @onclick="() => OnSelectChoice(choice.Id)"
                             @key="choice.Id"
-                            class="question question-@index @(Answer != null ? (Answer.ChoiceId == choice.Id ? "selected" : "not-selected") : "")">
+                            class="question question-@index @(_answer != null ? (_answer.ChoiceId == choice.Id ? "selected" : "not-selected") : "")">
                             <div class="question-inner">
                                 @choice.Content
                             </div>
                         </div>
                     }
                 </div>
-                @if (AllPlayers.Length >= 2)
+                @if (_allPlayers.Length >= 2)
                 {
-                    var percent = Math.Floor(100 * (double)AnswersCount / AllPlayers.Length);
+                    var percent = Math.Floor(100 * (double)_answersCount / _allPlayers.Length);
 
                     <div class="progress mt-2" role="progressbar" aria-label="Basic example" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100">
                         <div class="progress-bar" style="width: @(percent)%"></div>
                     </div>
                 }
             }
-            else if (CurrentGame.State == GameState.DisplayQuestionResult)
+            else if (CurrentGame.Status == GameStatus.DisplayQuestionResult)
             {
                 <h1 class="text-center mb-3">
-                    @CurrentQuestion.Content
+                    @CurrentGame.CurrentQuestion.Content
                 </h1>
-                if (IsAdmin)
+                if (_isAdmin)
                 {
                     <div class="answer-container answer-failure bg-success">
                         <i class="fa fa-check fa-4x" aria-hidden="true"></i>
                         <div>La bonne réponse était </div>
-                        <div class="fw-bold mt-1"> @(CurrentQuestion.Choices.FirstOrDefault(i => i.IsValid)?.Content ?? "?")</div>
+                        <div class="fw-bold mt-1"> @(CurrentGame.CurrentQuestion.Choices.FirstOrDefault(i => i.IsValid)?.Content ?? "?")</div>
                     </div>
                 }
-                else if ((Answer is null || !Answer.IsValid))
+                else if ((_answer is null || !_answer.IsValid))
                 {
                     <div class="answer-container answer-failure bg-danger">
                         <i class="fa fa-times fa-3x" aria-hidden="true"></i>
                         <div>La bonne réponse était </div>
-                        <div class="fw-bold mt-1"> @(CurrentQuestion.Choices.FirstOrDefault(i => i.IsValid)?.Content ?? "?")</div>
+                        <div class="fw-bold mt-1"> @(CurrentGame.CurrentQuestion.Choices.FirstOrDefault(i => i.IsValid)?.Content ?? "?")</div>
                     </div>
                 }
                 else
                 {
                     <div class="answer-container answer-success bg-success">
                         <i class="fa fa-check fa-4x" aria-hidden="true"></i>
-                        <div class="mt-2">Vous marquez @Answer.Score points</div>
+                        <div class="mt-2">Vous marquez @_answer.Score points</div>
                     </div>
                 }
             }
         </div>
     </div>
     <div class="col-12 col-md-4">
-        @if (AllPlayers.Any() && CurrentGame is not null)
+        @if (_allPlayers.Any() && CurrentGame is not null)
         {
             <div class="mt-3">
-                @for (var index = 0; index < AllPlayers.Length; index++)
+                @for (var index = 0; index < _allPlayers.Length; index++)
                 {
-                    var p = AllPlayers[index];
-                    <div class="score-row @(p.Id == Player?.Id ? "fw-bold" : "")">
+                    var p = _allPlayers[index];
+                    <div class="score-row @(p.Id == _player?.Id ? "fw-bold" : "")">
                         <span class="player-names">
                             @if (index == 0 && p.Score > 100)
                             {
@@ -120,7 +137,7 @@
                             @p.Name.Substring(0, Math.Min(p.Name.Length, 15))
                         </span>
 
-                        @if (CurrentGame.State is GameState.Completed or GameState.AskingQuestion or GameState.DisplayQuestionResult)
+                        @if (CurrentGame.Status is GameStatus.Completed or GameStatus.AskingQuestion or GameStatus.DisplayQuestionResult)
                         {
                             <span class="badge bg-primary">@p.Score</span>
                         }
@@ -133,138 +150,124 @@
 
 @code {
     protected override ILogger Logger => HomeLogger;
-    protected Answer? Answer = null;
-    protected Player? Player = null;
-    protected Player[] AllPlayers = Array.Empty<Player>();
-    protected int AnswersCount = 0;
+
+
+    private Answer? _answer;
+    private Player? _player;
+    private Player[] _allPlayers = Array.Empty<Player>();
+    private Question? _currentQuestion;
+    private int _answersCount;
+
+    [Inject]
+    protected GameService? GameService { get; set; }
 
     private Timer? _timer;
-    private bool IsAdmin;
+    private bool _isAdmin;
 
     private void HeartBeat()
     {
-        if (Player is null)
+        if (_player is null)
         {
             return;
         }
 
-        GameStateCache.PlayerHeartBeat(Player);
+        GameState.PlayerHeartBeat(_player);
     }
 
     protected override async Task OnInitializedAsync()
     {
-        if (await httpUtils.IsPreRendering())
+        if (await HttpUtils.IsPreRendering())
         {
             Logger.LogInformation("Skipped: Prerendering");
             return;
         }
 
-        Player = await PlayerService.GetPlayer();
-        IsAdmin = await PlayerService.IsAdmin();
-        if (Player is null && !IsAdmin)
+        if (!string.IsNullOrEmpty(GameId) && Guid.TryParse(GameId, out var gameIdGuid))
+        {
+            CurrentGame = GameStateAccessor.GetGame(gameIdGuid);
+        }
+
+        if (CurrentGame is null)
+        {
+            NavigationManager.NavigateTo("/not-found");
+            return;
+        }
+
+        _player = await PlayerService.GetPlayer(CurrentGame.Id);
+        _isAdmin = await PlayerService.IsAdmin();
+        if (_player is null && !_isAdmin)
         {
             Logger.LogInformation("Player doesn't exist. Redirecting.");
             NavigationManager.NavigateTo("/create-player");
             return;
         }
 
-        if (Player is not null)
+        if (_player is not null)
         {
-            GameStateCache.SetPlayer(Player);
+            GameState.SetPlayer(_player);
             _timer = new Timer(_ => HeartBeat(), null, TimeSpan.Zero, TimeSpan.FromSeconds(5));
         }
 
-        AppSynchronizer.SubscribePlayerCountChanged(OnPlayerCountChanged);
-        AppSynchronizer.SubscribeNewAnswer(OnNewAnswer);
-        AllPlayers = GameStateCache.GetAllPlayers();
+        _allPlayers = GameState.GetAllPlayers();
 
         await base.OnInitializedAsync();
     }
 
-    protected async Task OnSelectChoice(int choiceId)
+    private void OnSelectChoice(int choiceId)
     {
-        if (Answer is not null || CurrentQuestion is null || CurrentGame is null || Player is null)
+        if (_answer is not null || _currentQuestion is null || CurrentGame is null || _player is null)
         {
             return;
         }
 
-        Answer = new Answer()
+        _answer = new Answer()
         {
             ChoiceId = choiceId,
         };
 
-        StateHasChanged();
-
-        Answer = await DatabaseWriteContextProvider.Write<GameService, Answer?>(
-            async svc => await svc.PlayerSelectsAnswer(Player.Id, choiceId));
+        GameService?.PlayerSelectsAnswer(CurrentGame.Id, _player.Id, choiceId);
     }
 
-    private async Task Next()
+    private void Next()
     {
-        await DatabaseWriteContextProvider.Write<GameService, int>(async svc =>
+        if (CurrentGame is null || GameService is null)
         {
-            if (CurrentGame is null)
-            {
-                return 0;
-            }
-
-            if (CurrentGame.State == GameState.InPreparation)
-            {
-                await svc.SetGameWaitingForPlayers(CurrentGame.Id);
-            }
-            else if (CurrentGame.State == GameState.WaitingForPlayers)
-            {
-                await svc.StartGame(CurrentGame.Id);
-            }
-            else if (CurrentGame.State == GameState.DisplayQuestionResult)
-            {
-                await svc.MoveToNextQuestion();
-            }
-            else if (CurrentGame.State == GameState.AskingQuestion)
-            {
-                await svc.ValidateQuestion();
-            }
-            else if (CurrentGame.State == GameState.Completed)
-            {
-                await svc.ResetGame();
-            }
-
-            return 0;
-        });
-    }
-
-    protected override async Task AfterRefresh(bool isFirst)
-    {
-        if (CurrentQuestion is null || CurrentGame is null || Player is null)
-        {
-            Answer = null;
             return;
         }
 
-        Answer = GameStateCache.GetCurrentAnswer(Player.Id);
-        Player = GameStateCache.GetPlayer(Player.Id);
-        AllPlayers = GameStateCache.GetAllPlayers();
-        AnswersCount = GameStateCache.GetAnswersCount();
+        if (CurrentGame.Status == GameStatus.WaitingForPlayers)
+        {
+            GameService.StartGame(CurrentGame.Id);
+        }
+        else if (CurrentGame.Status == GameStatus.DisplayQuestionResult)
+        {
+            GameService.MoveToNextQuestion(CurrentGame.Id);
+        }
+        else if (CurrentGame.Status == GameStatus.AskingQuestion)
+        {
+            GameService.ValidateQuestion(CurrentGame.Id);
+        }
+    }
+
+    protected override void AfterRefresh()
+    {
+        if (_player is not null)
+        {
+            _answer = GameState.GetCurrentAnswer(_player.Id);
+            _player = GameState.GetPlayer(_player.Id);
+        }
+
+        _allPlayers = GameState.GetAllPlayers();
+        _answersCount = GameState.GetAnswersCount();
+        _allPlayers = GameState.GetAllPlayers();
+        _answersCount = GameState.GetAnswersCount();
+        _currentQuestion = GameState.CurrentQuestion;
     }
 
     public override void Dispose()
     {
         _timer?.Dispose();
         base.Dispose();
-        AppSynchronizer.UnsubscribePlayerCountChanged(OnPlayerCountChanged);
-        AppSynchronizer.UnsubscribeNewAnswer(OnNewAnswer);
-    }
-
-    private void OnPlayerCountChanged()
-    {
-        AllPlayers = GameStateCache.GetAllPlayers();
-        InvokeAsync(StateHasChanged);
-    }
-
-    private void OnNewAnswer()
-    {
-        AnswersCount = GameStateCache.GetAnswersCount();
-        InvokeAsync(StateHasChanged);
     }
 
 }

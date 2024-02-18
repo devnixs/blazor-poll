@@ -9,115 +9,88 @@ namespace Poll.Services;
 
 public class GameService
 {
-    private readonly PollContext _pollContext;
-    private readonly DomainEvents _domainEvents;
-    private readonly TransactionContext _transactionContext;
+    private readonly GameStateAccessor _gameStateAccessor;
+    private readonly ILogger<GameService> _logger;
 
-    public GameService(PollContext pollContext, DomainEvents domainEvents, TransactionContext transactionContext)
+    public GameService(
+        GameStateAccessor gameStateAccessor,
+        ILogger<GameService> logger
+        )
     {
-        _pollContext = pollContext;
-        _domainEvents = domainEvents;
-        _transactionContext = transactionContext;
+        _gameStateAccessor = gameStateAccessor;
+        _logger = logger;
     }
 
-    public async Task<Answer> PlayerSelectsAnswer(int playerId, int questionChoiceId)
+    public Answer? PlayerSelectsAnswer(Guid gameId, Guid playerId, int questionChoiceId)
     {
-        var questionChoice = await _pollContext.QuestionChoices
-            .Where(i => i.Id == questionChoiceId)
-            .Select(i => new
-            {
-                GameId = i.Question.GameId,
-                QuestionId = i.QuestionId,
-                QuestionStartTime = i.Question.StartTime,
-                IsValid = i.IsValid,
-            })
-            .SingleAsync();
+        var game = _gameStateAccessor.GetGame(gameId);
+        if (game?.CurrentQuestion is null)
+        {
+            _logger.LogWarning("Tried to selected answer but either game or question is undefined, {game}, {currentQuestion}", game, game?.CurrentQuestion);
+            return null;
+        }
+
+        if (!game.QuestionStartTime.HasValue)
+        {
+            _logger.LogWarning("Question didn't have a start time, {game}, {currentQuestion}", game, game?.CurrentQuestion);
+            return null;
+        }
+
+        var questionChoice = game.CurrentQuestion.Choices
+            .Single(i => i.Id == questionChoiceId);
         
-        var existingItems = await _pollContext.Answers.Where(i =>
-                i.GameId == questionChoice.GameId
-                && i.PlayerId == playerId
-                && i.QuestionId == questionChoice.QuestionId)
-            .ToArrayAsync();
-
-        _pollContext.Answers.RemoveRange(existingItems);
-
         var now = DateTimeOffset.UtcNow;
-        var questionStartTime = questionChoice.QuestionStartTime ?? now;
+        
         var answer = new Answer()
         {
             ChoiceId = questionChoiceId,
             PlayerId = playerId,
             QuestionId = questionChoice.QuestionId,
-            AnswerTime = now - questionStartTime,
-            GameId = questionChoice.GameId,
+            AnswerTime = now - game.QuestionStartTime.Value,
+            GameId = gameId,
             Date = now,
             IsValid = questionChoice.IsValid,
         };
-        _pollContext.Answers.Add(answer);
-
-        await _domainEvents.TriggerEvent(new NewAnswerEvent()
-        {
-            Answer = answer,
-        });
+        game.AddAnswer(answer);
 
         return answer;
     }
     
-    public async Task SetGameWaitingForPlayers(int gameId)
+    public void SetGameWaitingForPlayers(Guid gameId)
     {
-        var currentGame = await _pollContext.Games.SingleOrDefaultAsync(i => i.IsCurrent && i.Id != gameId);
-
-        if (currentGame is not null)
-        {
-            await FinishGame(currentGame);
-        }
-
-        var game = await _pollContext.Games.Include(i=>i.Questions).SingleAsync(i => i.Id == gameId);
-        game.IsCurrent = true;
-        game.State = GameState.WaitingForPlayers;
-        await _domainEvents.TriggerEvent(new GameStateChangedEvent());
+        var game = _gameStateAccessor.GetGame(gameId);
+        game?.SetState(GameStatus.WaitingForPlayers);
     }
     
-    public async Task StartGame(int gameId)
+    public void StartGame(Guid gameId)
     {
-        var currentGame = await _pollContext.Games.SingleOrDefaultAsync(i => i.IsCurrent && i.Id != gameId);
-
-        if (currentGame is not null)
+        var game = _gameStateAccessor.GetGame(gameId);
+        if (game is null)
         {
-            await FinishGame(currentGame);
+            return;
         }
 
-        var players = await _pollContext.Players.ToArrayAsync();
+        var players = game.Players;
         players.ForEach(i=>i.Score = 0);
+        game.SetState(GameStatus.AskingQuestion);
         
-        var game = await _pollContext.Games.Include(i=>i.Questions).SingleAsync(i => i.Id == gameId);
-        game.IsCurrent = true;
-        game.State = GameState.AskingQuestion;
-        game.Questions.ForEach(i => i.IsCurrent = false);
+        
         var firstQuestion = game.Questions.OrderBy(i => i.Index).First();
-        firstQuestion.IsCurrent = true;
-        await _domainEvents.TriggerEvent(new QuestionChangedEvent());
-
-    }
-
-    public async Task QuestionTimerEnds()
-    {
-        await ValidateQuestion();
+        game.SetCurrentQuestion(firstQuestion);
     }
     
-    public async Task<string?> ValidateGame(int gameId)
+    public async Task<string?> ValidateGame(int templateId)
     {
-        var game = await _pollContext.Games.Include(i => i.Questions).SingleAsync(i => i.Id == gameId);
-
-        if (game.Questions.Count == 0)
+        var template = new GameTemplate();
+        if (template.Questions.Count == 0)
         {
             return "Il faut au moins une question";
         }
         
         // Ensure all questions are valid
-        for (var i = 1; i <= game.Questions.ToArray().Length; i++)
+        for (var i = 1; i <= template.Questions.ToArray().Length; i++)
         {
-            var question = game.Questions.ToArray()[i-1];
+            var question = template.Questions.ToArray()[i-1];
             if (question.Choices.Count > 4)
             {
                 return $"Question {i} doit avoir au moins une réponse";
@@ -135,51 +108,58 @@ public class GameService
         return null;
     }
     
-    public async Task ValidateQuestion()
+    public void ValidateQuestion(Guid gameId)
     {
-        var currentGame = await _pollContext.Games.SingleAsync(i => i.IsCurrent);
-        if (currentGame.State != GameState.AskingQuestion)
+        var game = _gameStateAccessor.GetGame(gameId);
+        if (game is null)
         {
             return;
         }
         
-        currentGame.State = GameState.DisplayQuestionResult;
-        var currentQuestion = await _pollContext.Questions.Where(i=>i.GameId == currentGame.Id).SingleAsync(i => i.IsCurrent);
-        await ComputeScores(currentQuestion.Id, currentGame.Id);
-
-        await _domainEvents.TriggerEvent(new QuestionValidatedEvent());
+        if (game.Status != GameStatus.AskingQuestion)
+        {
+            return;
+        }
+        
+        game.SetState(GameStatus.DisplayQuestionResult);
+        ComputeScores(game);
     }
     
-    public async Task MoveToNextQuestion()
+    public void MoveToNextQuestion(Guid gameId)
     {
-        var currentGame = await _pollContext.Games.SingleAsync(i => i.IsCurrent);
-        if (currentGame.State != GameState.DisplayQuestionResult)
+        var game = _gameStateAccessor.GetGame(gameId);
+        if (game is null)
         {
+            _logger.LogWarning("Could not find game {}", gameId);
             return;
         }
 
-        var questions = await _pollContext.Questions.Where(i => i.GameId == currentGame.Id).OrderBy(i => i.Index)
-            .ToArrayAsync();
-        var current = questions.Select((question, index) =>(question, index)).FirstOrDefault(i => i.question.IsCurrent);
-        
-        current.question.IsCurrent = false;
-
-        if (current.index == questions.Length - 1)
+        var current = game.CurrentQuestion;
+        if (current is null)
         {
-            await FinishGame(currentGame);
+            var first = game.Questions.OrderBy(i => i.Index).First();
+            game.SetCurrentQuestion(first);
         }
         else
         {
-            questions[current.index + 1].IsCurrent = true;
-            questions[current.index +1].StartTime = DateTimeOffset.UtcNow;
-            currentGame.State = GameState.AskingQuestion;
-            await _domainEvents.TriggerEvent(new QuestionChangedEvent());
+            var currentIndex = game.Questions.FindIndex(i => i.Id == current.Id);
+
+            if (!currentIndex.HasValue || currentIndex == game.Questions.Length - 1)
+            {
+                FinishGame(game.Id);
+            }
+            else
+            {
+                var next = game.Questions.ElementAt(currentIndex.Value + 1);
+                game.SetCurrentQuestion(next);
+            }
         }
     }
     
-    public async Task ComputeScores(int questionId, int gameId)
+    public void ComputeScores(GameState game)
     {
-        var answers = await _pollContext.Answers.Where(i => i.QuestionId == questionId && i.GameId == gameId).ToArrayAsync();
+        var answers = game.Answers.ToArray();
+        var players = game.Players.ToArray();
         if (answers.Length == 0)
         {
             return;
@@ -187,15 +167,14 @@ public class GameService
         
         var maxTime = answers.Max(i => i.AnswerTime);
         var totalSeconds = maxTime.TotalSeconds > 0 ? maxTime.TotalSeconds : 1;
-        var playerIds = answers.Select(i => i.PlayerId).ToArray();
-        var players = await _pollContext.Players.Where(p=>playerIds.Contains(p.Id)).ToDictionaryAsync(i=>i.Id);
 
         foreach (var answer in answers)
         {
             if (answer.IsValid)
             {
                 answer.Score = (int)Math.Floor(100d + 20d * (1d - answer.AnswerTime.TotalSeconds / totalSeconds));
-                if (players.TryGetValue(answer.PlayerId, out var player))
+                var player = players.SingleOrDefault(i => i.Id == answer.PlayerId);
+                if (player is not null)
                 {
                     player.Score += answer.Score;
                 }
@@ -207,29 +186,10 @@ public class GameService
         }
     }
     
-    private async Task FinishGame(Game game)
+    private void FinishGame(Guid gameId)
     {
-        var questions = await _pollContext.Questions.Where(i => i.GameId == game.Id).ToArrayAsync();
-        foreach (var question in questions)
-        {
-            question.IsCurrent = false;
-        }
-
-        game.State = GameState.Completed;
-        await _domainEvents.TriggerEvent(new GameStateChangedEvent());
-    }
-
-    public async Task ResetGame()
-    {
-        var questions = await _pollContext.Questions.ToArrayAsync();
-        var answers = await _pollContext.Answers.ToArrayAsync();
-        var players = await _pollContext.Players.ToArrayAsync();
-        var game = await _pollContext.Games.SingleAsync(i=>i.IsCurrent);
-        
-        questions.ForEach(i=>i.IsCurrent = false);
-        players.ForEach(i=>i.Score = 0);
-        _pollContext.RemoveRange(answers);
-        await _domainEvents.TriggerEvent(new GameStateChangedEvent());
-        game.State = GameState.InPreparation;
+        var game = _gameStateAccessor.GetGame(gameId);
+        game?.SetCurrentQuestion(null);
+        game?.SetState(GameStatus.Completed);
     }
 }

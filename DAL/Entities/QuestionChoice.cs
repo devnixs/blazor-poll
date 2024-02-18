@@ -9,6 +9,7 @@ public class QuestionChoice
     public int Id { get; set; }
     
     [Required]
+    [StringLength(512)]
     public required string Content { get; set; }
 
     public int Index { get; set; }

@@ -10,58 +10,30 @@ namespace Poll.Components.Components;
 public abstract class BaseRefreshableComponent : ComponentBase, IDisposable
 {
     [Inject]
-    protected AppSynchronizer AppSynchronizer { get; set; }
+    protected GameStateAccessor GameStateAccessor { get; set; }
 
+    [Parameter]
+    public string? GameId { get; set; }
+    
     protected abstract ILogger Logger { get; }
     
-    [Inject]
-    protected DatabaseReadContextProvider DatabaseReadContextProvider { get; set; }
     
-    [Inject]
-    protected DatabaseWriteContextProvider DatabaseWriteContextProvider { get; set; }
+    protected GameState? CurrentGame = null;
     
-    protected Game? CurrentGame = null;
-    protected Question? CurrentQuestion = null;
-    CancellationTokenSource cts = new CancellationTokenSource();
-    SemaphoreSlim semaphore = new SemaphoreSlim(0);
-
     private bool _disposed = false;
 
     protected override async Task OnInitializedAsync()
     {
-        AppSynchronizer.SubscribeStateChanged(OnStateChanged);
+        if (!string.IsNullOrEmpty(GameId) && Guid.TryParse(GameId, out var gameIdGuid))
+        {
+            CurrentGame = GameStateAccessor.GetGame(gameIdGuid);
+        }
 
-        _ = Loop();
-        await Refresh(isFirstRefresh : true);
-        
+        CurrentGame?.SubscribeStateChanged(OnStateChanged);
+
         await base.OnInitializedAsync();
     }
     
-    private async Task Loop()
-    {
-        while (!cts.Token.IsCancellationRequested)
-        {
-            await semaphore.WaitAsync();
-
-            await Refresh(isFirstRefresh: false);
-        }
-    }
-    private async Task Refresh(bool isFirstRefresh)
-    {
-        Logger.LogInformation("Refreshing");
-
-        await DatabaseReadContextProvider.Read<GameStateCache, int>(async cache =>
-        {
-            CurrentQuestion = cache.GetCurrentQuestion();
-            CurrentGame = cache.GetCurrentGame();
-            return 0;
-        });
-
-        await AfterRefresh(isFirstRefresh);
-        
-        StateHasChanged();
-    }
-
     private void OnStateChanged()
     {
         if (_disposed)
@@ -70,19 +42,17 @@ public abstract class BaseRefreshableComponent : ComponentBase, IDisposable
         }
         
         Logger.LogInformation("State Changed");
-        semaphore.Release();
+        AfterRefresh();
+        StateHasChanged();
     }
 
     public virtual void Dispose()
     {
         _disposed = true;
-        cts.Dispose();
-        semaphore.Dispose();
-        AppSynchronizer.UnsubscribeStateChanged(OnStateChanged);
+        CurrentGame?.SubscribeStateChanged(OnStateChanged);
     }
 
-    protected virtual Task AfterRefresh(bool isFirst)
+    protected virtual void AfterRefresh()
     {
-        return Task.CompletedTask;
     }
 }

@@ -1,10 +1,7 @@
-﻿@page "/create-player"
+﻿@page "/create-player/{GameId}"
 @using Poll.DAL.Entities
 @using Poll.Services
-@using Poll.DAL
-@using Microsoft.EntityFrameworkCore
 
-@inject AppSynchronizer Synchronizer
 @inject ILogger<Home> Logger
 @inject HttpUtils httpUtils
 @inject NavigationManager NavigationManager
@@ -15,7 +12,7 @@
 <EditForm class="row g-3" Model="@Model" OnSubmit="@Submit">
     <div class="mb-3">
         <label for="firstname" class="form-label">Prénom:</label>
-        <InputText type="text" class="form-control" @bind-Value="Model!.Name" id="firstname" placeholder="" />
+        <InputText type="text" class="form-control" @bind-Value="Model!.Name" id="firstname" placeholder=""/>
     </div>
     <div class="col-auto">
         <button type="submit" class="btn btn-primary mb-3">OK</button>
@@ -24,19 +21,36 @@
 
 @code {
 
+    [Parameter]
+    public string? GameId { get; set; }
+
+    public Guid? GameIdGuid { get; set; }
+
     public Player Model { get; set; } = new Player()
     {
         Name = "",
     };
-    
+
     protected override async Task OnInitializedAsync()
     {
         if (await httpUtils.IsPreRendering())
         {
             return;
         }
-        
-        var player = await PlayerService.GetPlayer();
+
+
+        if (!string.IsNullOrEmpty(GameId) && !Guid.TryParse(GameId, out var g))
+        {
+            GameIdGuid = g;
+        }
+
+        if (GameIdGuid is null)
+        {
+            NavigationManager.NavigateTo("/not-found");
+            return;
+        }
+
+        var player = await PlayerService.GetPlayer(GameIdGuid.Value);
         if (player is not null)
         {
             Model.Name = player.Name;
@@ -45,12 +59,13 @@
 
     private async Task Submit()
     {
-        if (string.IsNullOrEmpty(Model?.Name))
+        if (string.IsNullOrEmpty(Model?.Name) || GameIdGuid is null)
         {
             return;
         }
-        
-        await PlayerService.SetPlayerName(Model.Name);
-        NavigationManager.NavigateTo("/");
+
+        await PlayerService.SetPlayerName(GameIdGuid.Value, Model.Name);
+        NavigationManager.NavigateTo("/game/" + GameIdGuid.Value);
     }
+
 }

@@ -25,12 +25,9 @@ public class Answer
     
     public bool IsValid { get; set; }
     
-    public int GameId { get; set; }
+    public Guid GameId { get; set; }
     
-    [ForeignKey(nameof(GameId))]
-    public Game? Game { get; set; }
-    
-    public int PlayerId { get; set; }
+    public Guid PlayerId { get; set; }
     
     [ForeignKey(nameof(PlayerId))]
     public Player? Player { get; set; }

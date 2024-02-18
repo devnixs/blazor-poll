@@ -40,13 +40,13 @@ builder.Services.AddTransient<HttpUtils>();
 builder.Services.AddTransient<DatabaseWriteContextProvider>();
 builder.Services.AddTransient<DatabaseReadContextProvider>();
 builder.Services.AddTransient<GameService>();
-builder.Services.AddSingleton<GameStateCache>();
+builder.Services.AddSingleton<GameState>();
 builder.Services.AddTransient<DomainEvents>();
 builder.Services.AddTransient<Initializer>();
 builder.Services.AddScoped<TransactionContext>();
 
 builder.Services.AddTransient<IInitializer, DbSeeder>();
-builder.Services.AddTransient<IInitializer, GameStateCache>(svc => svc.GetRequiredService<GameStateCache>());
+builder.Services.AddTransient<IInitializer, GameState>(svc => svc.GetRequiredService<GameState>());
 
 
 builder.Services.AddTransient<IEventHandler<QuestionValidatedEvent>, OnQuestionValidated>();

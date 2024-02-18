@@ -13,16 +13,19 @@ public class PlayerService
     private readonly ILocalStorageService _localStorage;
     private readonly DatabaseWriteContextProvider _databaseWriteContextProvider;
     private readonly DatabaseReadContextProvider _databaseReadContextProvider;
+    private readonly GameStateAccessor _gameStateAccessor;
     private readonly ILogger<PlayerService> _logger;
 
     public PlayerService(ILocalStorageService localStorage,
         DatabaseWriteContextProvider databaseWriteContextProvider,
         DatabaseReadContextProvider databaseReadContextProvider,
+        GameStateAccessor gameStateAccessor,
         ILogger<PlayerService> logger)
     {
         _localStorage = localStorage;
         _databaseWriteContextProvider = databaseWriteContextProvider;
         _databaseReadContextProvider = databaseReadContextProvider;
+        _gameStateAccessor = gameStateAccessor;
         _logger = logger;
     }
 
@@ -60,13 +63,14 @@ public class PlayerService
         }
     }
 
-    public async Task<Player?> GetPlayer()
+    public async Task<Player?> GetPlayer(Guid gameId)
     {
         if (!await _localStorage.ContainKeyAsync(Key)) return null;
 
-        var playerId = await _localStorage.GetItemAsync<int>(Key);
-        return await _databaseReadContextProvider.Read<PollContext, Player?>(
-            async db => await db.Players.SingleOrDefaultAsync(i => i!.Id == playerId));
+        var game = _gameStateAccessor.GetGame(gameId);
+        
+        var playerId = await _localStorage.GetItemAsync<Guid>(Key);
+        return game?.GetPlayer(playerId);
     }
 
     public async Task<bool> IsAdmin()
@@ -76,57 +80,49 @@ public class PlayerService
         return await _localStorage.GetItemAsync<bool>(AdminKey);
     }
 
-    public async Task<Player?> SetPlayerName(string name)
+    public async Task<Player> SetPlayerName(Guid gameId, string name)
     {
-        var p = await _databaseWriteContextProvider.Write<IServiceProvider, Player?>(
-            async svc =>
+        var game = _gameStateAccessor.GetGame(gameId);
+        if (game == null)
+        {
+            _logger.LogInformation("Could not find game {}", gameId);
+            return null;
+        }
+
+        Player? player;
+        if (!await _localStorage.ContainKeyAsync(Key))
+        {
+            player = new Player()
             {
-                var db = svc.GetRequiredService<PollContext>();
-                var domainEvents = svc.GetRequiredService<DomainEvents>();
-                
-                if (!await _localStorage.ContainKeyAsync(Key))
+                Id = Guid.NewGuid(),
+                Name = name,
+                HeartBeat = DateTimeOffset.UtcNow,
+            };
+
+            game.SetPlayer(player);
+            
+            await _localStorage.SetItemAsync(Key, player.Id);
+        }
+        else
+        {
+            var playerId = await _localStorage.GetItemAsync<Guid>(Key);
+            player = game.GetPlayer(playerId);
+            if (player is null)
+            {
+                player = new Player()
                 {
-                    var entity = new Player()
-                    {
-                        Name = name,
-                        HeartBeat = DateTimeOffset.UtcNow,
-                    };
-
-                    db.Players.Add(entity);
-                    await db.SaveChangesAsync();
-                    await _localStorage.SetItemAsync(Key, entity.Id);
-
-                    return entity;
-                }
-                else
-                {
-                    var playerId = await _localStorage.GetItemAsync<int>(Key);
-                    var player = await db.Players.SingleOrDefaultAsync(i => i!.Id == playerId);
-                    if (player is null)
-                    {
-                        player = new Player()
-                        {
-                            Name = name,
-                            HeartBeat = DateTimeOffset.UtcNow,
-                        };
-                        db.Add(player);
-                    }
-                    else
-                    {
-                        player.Name = name;
-                    }
-
-                    await domainEvents.TriggerEvent(new PlayerNameChangedEvent()
-                    {
-                        Player = player,
-                    });
-                    await db.SaveChangesAsync();
-
-                    return player;
-                }
-            });
+                    Name = name,
+                    HeartBeat = DateTimeOffset.UtcNow,
+                };
+                game.SetPlayer(player);
+            }
+            else
+            {
+                player.Name = name;
+            }
+        }
 
         TriggerNameChanged();
-        return p;
+        return player;
     }
 }
