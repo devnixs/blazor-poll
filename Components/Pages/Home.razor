@@ -104,7 +104,6 @@
                     var p = AllPlayers[index];
                     <div class="score-row @(p.Id == Player?.Id ? "fw-bold" : "")">
                         <span class="player-names">
-
                             @if (index == 0 && p.Score > 100)
                             {
                                 <span class="me-1">🏆</span>
@@ -121,7 +120,7 @@
                             @p.Name.Substring(0, Math.Min(p.Name.Length, 15))
                         </span>
 
-                        @if (CurrentGame.State == GameState.Completed || CurrentGame.State == GameState.AskingQuestion || CurrentGame.State == GameState.DisplayQuestionResult)
+                        @if (CurrentGame.State is GameState.Completed or GameState.AskingQuestion or GameState.DisplayQuestionResult)
                         {
                             <span class="badge bg-primary">@p.Score</span>
                         }
