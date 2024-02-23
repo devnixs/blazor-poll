@@ -2,7 +2,7 @@
 @using Poll.DAL.Entities
 @using Poll.Services
 
-@inject ILogger<Home> Logger
+@inject ILogger<CreatePlayer> Logger
 @inject HttpUtils httpUtils
 @inject NavigationManager NavigationManager
 @inject PlayerService PlayerService
@@ -38,11 +38,12 @@
             return;
         }
 
-
-        if (!string.IsNullOrEmpty(GameId) && !Guid.TryParse(GameId, out var g))
+        Logger.LogInformation("GameId is {}", GameId);
+        if (!string.IsNullOrEmpty(GameId) && Guid.TryParse(GameId, out var g))
         {
             GameIdGuid = g;
         }
+        Logger.LogInformation("Parsed GameId is {}", GameIdGuid);
 
         if (GameIdGuid is null)
         {

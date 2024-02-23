@@ -1,18 +1,11 @@
-using System.Text.Json;
-using System.Text.Json.Serialization;
 using Blazored.LocalStorage;
-using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Storage;
 using Poll.Components;
 using Poll.DAL;
 using Poll.DAL.Services;
-using Poll.Events;
 using Poll.Services;
 using Poll.Services.Abstractions;
-using Poll.Services.EventHandlers;
-using Poll.Services.PostCommitHandlers;
 
 /* Dependency Injection Registration */
 
@@ -34,34 +27,17 @@ builder.Services.AddDbContext<PollContext>(options =>
 });
 
 builder.Services.AddLogging();
-builder.Services.AddSingleton<AppSynchronizer>();
 builder.Services.AddScoped<PlayerService>();
+builder.Services.AddSingleton<GameStateAccessor>();
+builder.Services.AddHostedService(i => i.GetRequiredService<GameStateAccessor>());
 builder.Services.AddTransient<HttpUtils>();
 builder.Services.AddTransient<DatabaseWriteContextProvider>();
 builder.Services.AddTransient<DatabaseReadContextProvider>();
 builder.Services.AddTransient<GameService>();
-builder.Services.AddSingleton<GameState>();
-builder.Services.AddTransient<DomainEvents>();
 builder.Services.AddTransient<Initializer>();
 builder.Services.AddScoped<TransactionContext>();
 
 builder.Services.AddTransient<IInitializer, DbSeeder>();
-builder.Services.AddTransient<IInitializer, GameState>(svc => svc.GetRequiredService<GameState>());
-
-
-builder.Services.AddTransient<IEventHandler<QuestionValidatedEvent>, OnQuestionValidated>();
-builder.Services.AddTransient<OnQuestionValidated>();
-builder.Services.AddTransient<IEventHandler<CacheRefreshedEvent>, OnCacheRefreshed>();
-builder.Services.AddTransient<OnCacheRefreshed>();
-builder.Services.AddTransient<IEventHandler<GameStateChangedEvent>, OnGameStateChanged>();
-builder.Services.AddTransient<OnGameStateChanged>();
-builder.Services.AddTransient<IEventHandler<QuestionChangedEvent>, OnQuestionChanged>();
-builder.Services.AddTransient<OnQuestionChanged>();
-builder.Services.AddTransient<IEventHandler<PlayersCountChangedEvent>, PlayersCountChangedEventHandler>();
-builder.Services.AddTransient<OnNewAnswer>();
-builder.Services.AddTransient<IEventHandler<NewAnswerEvent>, OnNewAnswer>();
-builder.Services.AddTransient<OnPlayerNameChanged>();
-builder.Services.AddTransient<IEventHandler<PlayerNameChangedEvent>, OnPlayerNameChanged>();
 
 builder.Services.AddHttpContextAccessor();
 
@@ -69,7 +45,6 @@ builder.Services.AddBlazoredLocalStorage();
 
 
 /* Runtime */
-
 var app = builder.Build();
 using (var scope = app.Services.CreateScope())
 {

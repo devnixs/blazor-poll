@@ -1,12 +1,9 @@
 ﻿@page "/game/{GameId}"
 @using Poll.Services
 @using Poll.DAL.Entities
-@using GameState = Poll.Services.GameState
-
 @inject HttpUtils HttpUtils
 @inject PlayerService PlayerService
 @inject NavigationManager NavigationManager
-@inject GameState GameState
 @inject ILogger<Home> HomeLogger
 @inherits Poll.Components.Components.BaseRefreshableComponent
 
@@ -171,7 +168,7 @@
             return;
         }
 
-        GameState.PlayerHeartBeat(_player);
+        CurrentGame?.PlayerHeartBeat(_player);
     }
 
     protected override async Task OnInitializedAsync()
@@ -182,11 +179,13 @@
             return;
         }
 
+        Logger.LogInformation("GameId : {GameId}", GameId);
         if (!string.IsNullOrEmpty(GameId) && Guid.TryParse(GameId, out var gameIdGuid))
         {
             CurrentGame = GameStateAccessor.GetGame(gameIdGuid);
         }
 
+        Logger.LogInformation("CurrentGame : {Game}", CurrentGame?.Id);
         if (CurrentGame is null)
         {
             NavigationManager.NavigateTo("/not-found");
@@ -198,17 +197,17 @@
         if (_player is null && !_isAdmin)
         {
             Logger.LogInformation("Player doesn't exist. Redirecting.");
-            NavigationManager.NavigateTo("/create-player");
+            NavigationManager.NavigateTo("/create-player/"+CurrentGame.Id);
             return;
         }
 
         if (_player is not null)
         {
-            GameState.SetPlayer(_player);
+            CurrentGame.SetPlayer(_player);
             _timer = new Timer(_ => HeartBeat(), null, TimeSpan.Zero, TimeSpan.FromSeconds(5));
         }
 
-        _allPlayers = GameState.GetAllPlayers();
+        _allPlayers = CurrentGame.GetAllPlayers();
 
         await base.OnInitializedAsync();
     }
@@ -251,17 +250,22 @@
 
     protected override void AfterRefresh()
     {
+        if (CurrentGame is null)
+        {
+            return;
+        }
+        
         if (_player is not null)
         {
-            _answer = GameState.GetCurrentAnswer(_player.Id);
-            _player = GameState.GetPlayer(_player.Id);
+            _answer = CurrentGame.GetCurrentAnswer(_player.Id);
+            _player = CurrentGame.GetPlayer(_player.Id);
         }
 
-        _allPlayers = GameState.GetAllPlayers();
-        _answersCount = GameState.GetAnswersCount();
-        _allPlayers = GameState.GetAllPlayers();
-        _answersCount = GameState.GetAnswersCount();
-        _currentQuestion = GameState.CurrentQuestion;
+        _allPlayers = CurrentGame.GetAllPlayers();
+        _answersCount = CurrentGame.GetAnswersCount();
+        _allPlayers = CurrentGame.GetAllPlayers();
+        _answersCount = CurrentGame.GetAnswersCount();
+        _currentQuestion = CurrentGame.CurrentQuestion;
     }
 
     public override void Dispose()

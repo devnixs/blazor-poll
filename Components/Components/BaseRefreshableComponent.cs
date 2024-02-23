@@ -1,8 +1,4 @@
 ﻿using Microsoft.AspNetCore.Components;
-using Microsoft.EntityFrameworkCore;
-using Poll.DAL;
-using Poll.DAL.Entities;
-using Poll.DAL.Services;
 using Poll.Services;
 
 namespace Poll.Components.Components;
@@ -43,7 +39,7 @@ public abstract class BaseRefreshableComponent : ComponentBase, IDisposable
         
         Logger.LogInformation("State Changed");
         AfterRefresh();
-        StateHasChanged();
+        InvokeAsync(StateHasChanged);
     }
 
     public virtual void Dispose()

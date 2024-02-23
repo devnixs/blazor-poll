@@ -83,7 +83,7 @@ public class GameState : IDisposable
         
         lock (_answerLocker)
         {
-            return _answers.First(i=>i.PlayerId == playerId && i.QuestionId == currentQuestion.Id);
+            return _answers.FirstOrDefault(i=>i.PlayerId == playerId && i.QuestionId == currentQuestion.Id);
         }
     }
 

@@ -1,30 +1,20 @@
 ﻿using Blazored.LocalStorage;
-using Microsoft.EntityFrameworkCore;
-using Microsoft.EntityFrameworkCore.Storage;
-using Poll.DAL;
 using Poll.DAL.Entities;
 using Poll.DAL.Services;
-using Poll.Events;
 
 namespace Poll.Services;
 
 public class PlayerService
 {
     private readonly ILocalStorageService _localStorage;
-    private readonly DatabaseWriteContextProvider _databaseWriteContextProvider;
-    private readonly DatabaseReadContextProvider _databaseReadContextProvider;
     private readonly GameStateAccessor _gameStateAccessor;
     private readonly ILogger<PlayerService> _logger;
 
     public PlayerService(ILocalStorageService localStorage,
-        DatabaseWriteContextProvider databaseWriteContextProvider,
-        DatabaseReadContextProvider databaseReadContextProvider,
         GameStateAccessor gameStateAccessor,
         ILogger<PlayerService> logger)
     {
         _localStorage = localStorage;
-        _databaseWriteContextProvider = databaseWriteContextProvider;
-        _databaseReadContextProvider = databaseReadContextProvider;
         _gameStateAccessor = gameStateAccessor;
         _logger = logger;
     }
@@ -111,6 +101,7 @@ public class PlayerService
             {
                 player = new Player()
                 {
+                    Id = playerId,
                     Name = name,
                     HeartBeat = DateTimeOffset.UtcNow,
                 };

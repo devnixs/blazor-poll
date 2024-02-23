@@ -1,9 +1,5 @@
-﻿using Microsoft.EntityFrameworkCore;
-using MoreLinq;
-using Poll.DAL;
+﻿using MoreLinq;
 using Poll.DAL.Entities;
-using Poll.DAL.Services;
-using Poll.Events;
 
 namespace Poll.Services;
 
