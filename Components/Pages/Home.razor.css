@@ -27,7 +27,7 @@
 }
 
 .not-selected {
-    opacity: 0.25;
+    opacity: 0.3;
     cursor: default;
 }
 
@@ -44,11 +44,18 @@
 }
 
 .question-2 {
-    background-color: rgb(234, 153, 153);
+    background-color: rgb(179 153 234);
 }
 
 .question-3 {
     background-color: rgb(255, 229, 153);
+}
+
+.question.valid {
+    border: 4px solid green;
+}
+.question.invalid {
+    opacity: 0.3;
 }
 
 .answer-container {
@@ -89,4 +96,38 @@
 .game-end{
     text-align: center;
     font-size: 3rem;
+}
+
+.qrcode-container{
+    margin:auto;
+    max-height: 40vh;
+    text-align: center;
+}
+
+::deep .qrcode-container svg{
+    max-height: 40vh;
+    max-width: 100%;
+}
+
+.image-container{
+    text-align: center;
+    margin-bottom: 1rem;
+}
+
+.image-details{
+    max-height: 30vh;
+    max-width: 100%;
+}
+
+.footer{
+    position: fixed;
+    text-align: right;
+    bottom: 0.3rem;
+    left: 0.3rem;
+    right: 0.3rem;
+    height: 1rem;
+}
+
+.footer small{
+    font-size: 11px;
 }

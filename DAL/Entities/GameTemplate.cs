@@ -9,9 +9,10 @@ public class GameTemplate
     
     public DateTimeOffset CreationDate { get; set; }
 
-    public string Name { get; set; }
-    
-    public ICollection<Question> Questions { get; set; }
+    [StringLength(256)]
+    public string? Name { get; set; }
+
+    public ICollection<Question> Questions { get; set; } = new List<Question>();
     
     public override string ToString()
     {

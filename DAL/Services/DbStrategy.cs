@@ -15,7 +15,7 @@ namespace Poll.DAL.Services
             _log = dependencies.Logger.Logger;
         }
 
-        public string Name { get; set; }
+        public string? Name { get; set; }
         public TransactionPriority Priority { get; set; } = TransactionPriority.Low;
         public new int MaxRetryCount => base.MaxRetryCount;
 

@@ -17,8 +17,6 @@ public class PollContext : DbContext
 
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
     {
-        optionsBuilder.UseNpgsql(@"Host=localhost;Username=admin;Password=password;Database=Poll");
-        
         base.OnConfiguring(optionsBuilder);
     }
 }

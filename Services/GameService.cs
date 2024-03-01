@@ -52,12 +52,6 @@ public class GameService
         return answer;
     }
     
-    public void SetGameWaitingForPlayers(Guid gameId)
-    {
-        var game = _gameStateAccessor.GetGame(gameId);
-        game?.SetState(GameStatus.WaitingForPlayers);
-    }
-    
     public void StartGame(Guid gameId)
     {
         var game = _gameStateAccessor.GetGame(gameId);
@@ -75,12 +69,12 @@ public class GameService
         game.SetCurrentQuestion(firstQuestion);
     }
     
-    public async Task<string?> ValidateGame(int templateId)
+    public Task<string?> ValidateGame(int templateId)
     {
         var template = new GameTemplate();
         if (template.Questions.Count == 0)
         {
-            return "Il faut au moins une question";
+            return Task.FromResult("Il faut au moins une question")!;
         }
         
         // Ensure all questions are valid
@@ -89,19 +83,19 @@ public class GameService
             var question = template.Questions.ToArray()[i-1];
             if (question.Choices.Count > 4)
             {
-                return $"Question {i} doit avoir au moins une réponse";
+                return Task.FromResult($"Question {i} doit avoir au moins une réponse")!;
             }
             if (question.Choices.Count > 4)
             {
-                return $"Question {i} doit avoir au maximum 4 réponses";
+                return Task.FromResult($"Question {i} doit avoir au maximum 4 réponses")!;
             }
             if (!question.Choices.Any(c=>c.IsValid))
             {
-                return $"Question {i} doit avoir une réponse valide";
+                return Task.FromResult($"Question {i} doit avoir une réponse valide")!;
             }
         }
 
-        return null;
+        return Task.FromResult<string?>(null);
     }
     
     public void ValidateQuestion(Guid gameId)
@@ -119,6 +113,7 @@ public class GameService
         
         game.SetState(GameStatus.DisplayQuestionResult);
         ComputeScores(game);
+        game.OnStateChanged();
     }
     
     public void MoveToNextQuestion(Guid gameId)
@@ -184,6 +179,7 @@ public class GameService
     
     private void FinishGame(Guid gameId)
     {
+        _logger.LogInformation("Game {gameId} finished", gameId);
         var game = _gameStateAccessor.GetGame(gameId);
         game?.SetCurrentQuestion(null);
         game?.SetState(GameStatus.Completed);

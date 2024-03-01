@@ -14,7 +14,7 @@ public class DatabaseWriteContextProvider
     public async Task<TResult> Write<T,TResult>(Func<T, Task<TResult>> func) where T : notnull
     {
         using var outerScope = _serviceScopeFactory.CreateScope();
-        var context = outerScope.ServiceProvider.GetService<PollContext>();
+        var context = outerScope.ServiceProvider.GetService<PollContext>()!;
 
         var strategy = context.Database.CreateExecutionStrategy();
 
@@ -50,7 +50,7 @@ public class DatabaseReadContextProvider
     public async Task<TResult> Read<T,TResult>(Func<T, Task<TResult>> func) where T : notnull
     {
         using var outerScope = _serviceScopeFactory.CreateScope();
-        var context = outerScope.ServiceProvider.GetService<PollContext>();
+        var context = outerScope.ServiceProvider.GetService<PollContext>()!;
 
         var strategy = context.Database.CreateExecutionStrategy();
 

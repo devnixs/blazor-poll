@@ -1,0 +1,33 @@
+﻿@using System.Text
+
+@if (!string.IsNullOrEmpty(_svg))
+{
+    @((MarkupString)_svg)
+}
+
+@code{
+    [Inject]
+    public IHttpContextAccessor? CtxAccessor { get; set; }
+    
+    [Parameter]
+    public Guid GameId { get; set; }
+
+    private string? _svg;
+
+    protected override Task OnInitializedAsync()
+    {
+        var ctx = CtxAccessor?.HttpContext;
+        if(ctx is null)
+        {
+            return Task.CompletedTask;
+        }
+
+        var hostName = ctx.Request.Host.ToString();
+        var scheme = ctx.Request.Scheme;
+        
+        var qr = Net.Codecrete.QrCodeGenerator.QrCode.EncodeText($"{scheme}://{hostName}/game/{GameId}", Net.Codecrete.QrCodeGenerator.QrCode.Ecc.Medium);
+        _svg = qr.ToSvgString(4);
+        
+        return base.OnInitializedAsync();
+    }
+}

@@ -6,7 +6,7 @@ namespace Poll.Components.Components;
 public abstract class BaseRefreshableComponent : ComponentBase, IDisposable
 {
     [Inject]
-    protected GameStateAccessor GameStateAccessor { get; set; }
+    protected GameStateAccessor GameStateAccessor { get; set; } = null!;
 
     [Parameter]
     public string? GameId { get; set; }

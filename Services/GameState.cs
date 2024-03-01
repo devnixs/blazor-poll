@@ -11,16 +11,16 @@ public class GameState : IDisposable
     private readonly DatabaseReadContextProvider _databaseReadContextProvider;
     private readonly ILogger<GameState> _logger;
 
-    public Question[] Questions { get; private set; }
-    public Question? CurrentQuestion  { get; private set; }
-    public GameTemplate Template { get; private set; }
+    public Question[] Questions { get; private set; } = Array.Empty<Question>();
+    public Question? CurrentQuestion { get; private set; }
+    public GameTemplate Template { get; private set; } = null!;
 
     private readonly List<Answer> _answers = new List<Answer>();
     private readonly Object _answerLocker = new object();
-    
+
     public GameStatus Status { get; private set; }
-    
-    
+
+
     public IEnumerable<Answer> Answers
     {
         get
@@ -31,7 +31,7 @@ public class GameState : IDisposable
             }
         }
     }
-    
+
     private readonly ConcurrentDictionary<Guid, Player> _players = new();
     public IEnumerable<Player> Players => _players.Values;
 
@@ -52,18 +52,18 @@ public class GameState : IDisposable
         Id = id;
         GameTemplateId = gameTemplateId;
     }
-    
+
     public async Task LoadData()
     {
         _logger.LogInformation("Loading template data");
         await _databaseReadContextProvider.Read<PollContext, int>(async db =>
         {
             Template = await db.GameTemplates
-                .Include(i=>i.Questions)
-                .ThenInclude(i=>i.Choices)
+                .Include(i => i.Questions)
+                .ThenInclude(i => i.Choices)
                 .SingleAsync(i => i.Id == GameTemplateId);
             Questions = Template.Questions.ToArray();
-            
+
             return 0;
         });
     }
@@ -80,10 +80,10 @@ public class GameState : IDisposable
         {
             return null;
         }
-        
+
         lock (_answerLocker)
         {
-            return _answers.FirstOrDefault(i=>i.PlayerId == playerId && i.QuestionId == currentQuestion.Id);
+            return _answers.FirstOrDefault(i => i.PlayerId == playerId && i.QuestionId == currentQuestion.Id);
         }
     }
 
@@ -94,7 +94,7 @@ public class GameState : IDisposable
         Status = GameStatus.WaitingForPlayers;
         _playerPurger = new Timer(_ => PurgeDisconnectedPlayers(), null, TimeSpan.Zero, TimeSpan.FromSeconds(10));
     }
-    
+
     public Player? GetPlayer(Guid id)
     {
         _players.TryGetValue(id, out var player);
@@ -113,7 +113,7 @@ public class GameState : IDisposable
             player.HeartBeat = DateTimeOffset.UtcNow;
         }
     }
-    
+
     private void PurgeDisconnectedPlayers()
     {
         var oneRemoved = false;
@@ -149,7 +149,7 @@ public class GameState : IDisposable
 
     public Player[] GetAllPlayers()
     {
-        return _players.Values.OrderByDescending(i=>i.Score).ToArray();
+        return _players.Values.OrderByDescending(i => i.Score).ToArray();
     }
 
     public int GetAnswersCount()
@@ -166,6 +166,7 @@ public class GameState : IDisposable
         {
             player.Name = eventDataPlayer.Name;
         }
+
         OnStateChanged();
     }
 
@@ -183,9 +184,10 @@ public class GameState : IDisposable
             {
                 _answers.Remove(a);
             }
-            
+
             _answers.Add(answer);
         }
+
         OnStateChanged();
     }
 
@@ -202,6 +204,7 @@ public class GameState : IDisposable
                 _logger.LogInformation("Invalid status switch from {} to {}", Status, newStatus);
                 break;
         }
+
         OnStateChanged();
     }
 
@@ -209,15 +212,17 @@ public class GameState : IDisposable
     {
         CurrentQuestion = question;
         QuestionStartTime = DateTimeOffset.UtcNow;
-        lock(_answerLocker)
+        lock (_answerLocker)
         {
             _answers.Clear();
         }
-        SetState(GameStatus.AskingQuestion);
-        
+
+        if (question is not null)
+        {
+            SetState(GameStatus.AskingQuestion);
+        }
     }
-    
-    
+
     private readonly List<Action> _stateChangedHandlers = new();
 
     public void SubscribeStateChanged(Action handler)
@@ -227,7 +232,7 @@ public class GameState : IDisposable
             _stateChangedHandlers.Add(handler);
         }
     }
-    
+
     public void UnsubscribeStateChanged(Action handler)
     {
         lock (_stateChangedHandlers)
@@ -235,7 +240,7 @@ public class GameState : IDisposable
             _stateChangedHandlers.Remove(handler);
         }
     }
-    
+
     public virtual void OnStateChanged()
     {
         lock (_stateChangedHandlers)
@@ -246,5 +251,4 @@ public class GameState : IDisposable
             }
         }
     }
-
 }

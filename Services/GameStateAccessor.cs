@@ -40,7 +40,7 @@ public class GameStateAccessor : BackgroundService
                 }
             }
 
-            await Task.Delay(TimeSpan.FromMinutes(10));
+            await Task.Delay(TimeSpan.FromMinutes(10), stoppingToken);
         }
     }
 

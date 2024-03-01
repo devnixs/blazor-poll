@@ -70,7 +70,7 @@ public class PlayerService
         return await _localStorage.GetItemAsync<bool>(AdminKey);
     }
 
-    public async Task<Player> SetPlayerName(Guid gameId, string name)
+    public async Task<Player?> SetPlayerName(Guid gameId, string name)
     {
         var game = _gameStateAccessor.GetGame(gameId);
         if (game == null)

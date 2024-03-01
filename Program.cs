@@ -4,8 +4,11 @@ using Microsoft.EntityFrameworkCore.Storage;
 using Poll.Components;
 using Poll.DAL;
 using Poll.DAL.Services;
+using Poll.Middlewares;
 using Poll.Services;
 using Poll.Services.Abstractions;
+
+Console.WriteLine("Starting app");
 
 /* Dependency Injection Registration */
 
@@ -14,8 +17,6 @@ var builder = WebApplication.CreateBuilder(args);
 // Add services to the container.
 builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents();
-
-builder.Services.AddDbContext<PollContext>();
 
 builder.Services.AddDbContext<PollContext>(options =>
 {
@@ -58,8 +59,8 @@ if (!app.Environment.IsDevelopment())
     app.UseExceptionHandler("/Error", createScopeForErrors: true);
     // The default HSTS value is 30 days. You may want to change this for production scenarios, see https://aka.ms/aspnetcore-hsts.
     app.UseHsts();
+    app.UseNoCacheMiddleware();
 }
-
 
 app.UseHttpsRedirection();
 

@@ -15,8 +15,14 @@ public class Question
     public int GameTemplateId { get; set; }
 
     public int Index { get; set; }
+
+    public ICollection<QuestionChoice> Choices { get; set; } = new List<QuestionChoice>();
+
+    [StringLength(1024)]
+    public string? AskingQuestionImageUrl { get; set; }
     
-    public ICollection<QuestionChoice> Choices { get; set; }
+    [StringLength(1024)]
+    public string? PresentingAnswerImageUrl { get; set; }
 
     public override string ToString()
     {

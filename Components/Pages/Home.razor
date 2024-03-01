@@ -1,6 +1,7 @@
 ﻿@page "/game/{GameId}"
 @using Poll.Services
 @using Poll.DAL.Entities
+@using Poll.Components.Components
 @inject HttpUtils HttpUtils
 @inject PlayerService PlayerService
 @inject NavigationManager NavigationManager
@@ -9,31 +10,33 @@
 
 <PageTitle>Home</PageTitle>
 
-@if (_isAdmin)
-{
-    <div class="text-end mb-1">
-        <button class="btn btn-outline-success me-2" @onclick="Next">
-            Next
-            <i class="fa fa-arrow-right fa-fw"></i>
-        </button>
-    </div>
-}
 
-<SectionContent SectionName="top-bar">
+<Microsoft.AspNetCore.Components.Sections.SectionContent SectionName="top-bar">
     @if (CurrentGame is not null)
     {
         <span>@CurrentGame.Template.Name</span>
-    }
 
-    <div class="text-right">
-        @if (!string.IsNullOrEmpty(_player?.Name))
+        <div class="text-right">
+            @if (!string.IsNullOrEmpty(_player?.Name))
+            {
+                <a href="/create-player/@CurrentGame.Id">
+                    <strong>@_player?.Name</strong> <i class="fa fa-pencil ml-3"></i>
+                </a>
+            }
+        </div>
+        
+        @if (_isAdmin && CurrentGame?.Status != GameStatus.Completed)
         {
-            <a href="/create-player">
-                <strong>@_player?.Name</strong> <i class="fa fa-pencil ml-3"></i>
-            </a>
+            <div class="text-end mb-1">
+                <button class="btn btn-outline-success me-2" @onclick="Next">
+                    Next
+                    <i class="fa fa-arrow-right fa-fw"></i>
+                </button>
+            </div>
         }
-    </div>
-</SectionContent>
+    }
+    
+</Microsoft.AspNetCore.Components.Sections.SectionContent>
 
 
 <div class="row">
@@ -45,15 +48,46 @@
             }
             else if (CurrentGame == null || CurrentGame.CurrentQuestion == null || CurrentGame.Status == GameStatus.WaitingForPlayers)
             {
-                <h1 class="text-center">
-                    Le jeu va bientôt démarrer, merci de patienter!
-                </h1>
+                @if (CurrentGame?.Status == GameStatus.WaitingForPlayers)
+                {
+                    <h1 class="text-center">
+                        Le jeu va bientôt démarrer, merci de patienter!
+                    </h1>
+                
+                    <div class="qrcode-container">
+                        @if (CurrentGame is not null)
+                        {
+                            <QrCodeRenderer GameId="CurrentGame.Id"/>
+                        }
+                    </div>
+                }
+                
+                @if (CurrentGame?.Status == GameStatus.Completed)
+                {
+                    <h1 class="text-center">
+                        🎉
+                    </h1>
+                }
+                
+                if (CurrentGame is null)
+                {
+                    <h1 class="text-center">
+                        Chargement...
+                    </h1>
+                }
             }
             else if (CurrentGame.Status == GameStatus.AskingQuestion)
             {
                 <h1 class="text-center mb-3 question-title">
                     @CurrentGame.CurrentQuestion.Content
                 </h1>
+                
+                if (!string.IsNullOrEmpty(CurrentGame.CurrentQuestion.AskingQuestionImageUrl))
+                {
+                    <div class="image-container">
+                        <img class="image-details" src="@CurrentGame.CurrentQuestion.AskingQuestionImageUrl" alt="Question Image" />
+                    </div>
+                }
 
                 <div class="question-container">
                     @for (var index = 0; index < CurrentGame.CurrentQuestion.Choices.ToArray().Length; index++)
@@ -80,15 +114,34 @@
             }
             else if (CurrentGame.Status == GameStatus.DisplayQuestionResult)
             {
+                var validChoice = CurrentGame.CurrentQuestion.Choices.FirstOrDefault(i => i.IsValid);
+
                 <h1 class="text-center mb-3">
                     @CurrentGame.CurrentQuestion.Content
                 </h1>
+
+                if (!string.IsNullOrEmpty(CurrentGame.CurrentQuestion.PresentingAnswerImageUrl))
+                {
+                    <div class="image-container">
+                        <img class="image-details" src="@CurrentGame.CurrentQuestion.PresentingAnswerImageUrl" alt="Question Image" />
+                    </div>
+                }
+
                 if (_isAdmin)
                 {
-                    <div class="answer-container answer-failure bg-success">
-                        <i class="fa fa-check fa-4x" aria-hidden="true"></i>
-                        <div>La bonne réponse était </div>
-                        <div class="fw-bold mt-1"> @(CurrentGame.CurrentQuestion.Choices.FirstOrDefault(i => i.IsValid)?.Content ?? "?")</div>
+                    <div class="question-container">
+                        @for (var index = 0; index < CurrentGame.CurrentQuestion.Choices.ToArray().Length; index++)
+                        {
+                            var choice = CurrentGame.CurrentQuestion.Choices.ToArray()[index];
+                            <div
+                                @onclick="() => OnSelectChoice(choice.Id)"
+                                @key="choice.Id"
+                                class="question question-@index @(validChoice?.Id == choice.Id ? "valid" : "invalid")">
+                                <div class="question-inner">
+                                    @choice.Content
+                                </div>
+                            </div>
+                        }
                     </div>
                 }
                 else if ((_answer is null || !_answer.IsValid))
@@ -96,7 +149,7 @@
                     <div class="answer-container answer-failure bg-danger">
                         <i class="fa fa-times fa-3x" aria-hidden="true"></i>
                         <div>La bonne réponse était </div>
-                        <div class="fw-bold mt-1"> @(CurrentGame.CurrentQuestion.Choices.FirstOrDefault(i => i.IsValid)?.Content ?? "?")</div>
+                        <div class="fw-bold mt-1"> @(validChoice?.Content ?? "?")</div>
                     </div>
                 }
                 else
@@ -145,6 +198,10 @@
     </div>
 </div>
 
+<div class="footer">
+    <small>Raphael & Virginie 2024 - v0.1</small>
+</div>
+
 @code {
     protected override ILogger Logger => HomeLogger;
 
@@ -152,7 +209,6 @@
     private Answer? _answer;
     private Player? _player;
     private Player[] _allPlayers = Array.Empty<Player>();
-    private Question? _currentQuestion;
     private int _answersCount;
 
     [Inject]
@@ -173,12 +229,6 @@
 
     protected override async Task OnInitializedAsync()
     {
-        if (await HttpUtils.IsPreRendering())
-        {
-            Logger.LogInformation("Skipped: Prerendering");
-            return;
-        }
-
         Logger.LogInformation("GameId : {GameId}", GameId);
         if (!string.IsNullOrEmpty(GameId) && Guid.TryParse(GameId, out var gameIdGuid))
         {
@@ -191,13 +241,19 @@
             NavigationManager.NavigateTo("/not-found");
             return;
         }
+        
+        if (await HttpUtils.IsPreRendering())
+        {
+            Logger.LogInformation("Skipped: Prerendering");
+            return;
+        }
 
         _player = await PlayerService.GetPlayer(CurrentGame.Id);
         _isAdmin = await PlayerService.IsAdmin();
         if (_player is null && !_isAdmin)
         {
             Logger.LogInformation("Player doesn't exist. Redirecting.");
-            NavigationManager.NavigateTo("/create-player/"+CurrentGame.Id);
+            NavigationManager.NavigateTo("/create-player/" + CurrentGame.Id);
             return;
         }
 
@@ -205,6 +261,7 @@
         {
             CurrentGame.SetPlayer(_player);
             _timer = new Timer(_ => HeartBeat(), null, TimeSpan.Zero, TimeSpan.FromSeconds(5));
+            _answer = CurrentGame.GetCurrentAnswer(_player.Id);
         }
 
         _allPlayers = CurrentGame.GetAllPlayers();
@@ -214,7 +271,7 @@
 
     private void OnSelectChoice(int choiceId)
     {
-        if (_answer is not null || _currentQuestion is null || CurrentGame is null || _player is null)
+        if (_answer is not null || CurrentGame?.CurrentQuestion is null || _player is null)
         {
             return;
         }
@@ -254,7 +311,7 @@
         {
             return;
         }
-        
+
         if (_player is not null)
         {
             _answer = CurrentGame.GetCurrentAnswer(_player.Id);
@@ -265,7 +322,6 @@
         _answersCount = CurrentGame.GetAnswersCount();
         _allPlayers = CurrentGame.GetAllPlayers();
         _answersCount = CurrentGame.GetAnswersCount();
-        _currentQuestion = CurrentGame.CurrentQuestion;
     }
 
     public override void Dispose()
