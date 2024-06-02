@@ -1,0 +1,26 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "type": "node",
+      "request": "launch",
+      "name": "Run TypeScript",
+      "runtimeArgs": [
+        "-r",
+        "ts-node/register"
+      ],
+      "args": [
+        "${workspaceFolder}/AdminUI/test.ts"
+      ],
+      "cwd": "${workspaceFolder}/AdminUI",
+      "internalConsoleOptions": "openOnSessionStart",
+      "outFiles": [
+        "${workspaceFolder}/AdminUI/**/*.js",
+        "!${workspaceFolder}/AdminUI/node_modules/**/*.*",
+      ],
+      "skipFiles": [
+        "${workspaceFolder}/AdminUI/node_modules/**/*.js"
+      ]
+    }
+  ]
+}
