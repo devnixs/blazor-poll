@@ -117,24 +117,31 @@ export class DbClientService {
   }
 
   async createTemplate(obj: GameTemplateDetailDto): Promise<GameTemplates> {
+    obj.template.id = undefined;
     const template = await this._prisma.gameTemplates.create({
       data: obj.template,
     });
 
     for (let i = 0; i < obj.questions.length; i++) {
       const question = obj.questions[i];
-      question.index = i;
-      question.gameTemplateId = template.id;
+      const questionChoices = question.choices;
+      question.choices = undefined;
       const newlyCreated = await this._prisma.questions.create({
-        data: question,
+        data: {
+          ...question,
+          id: undefined,
+          index: i,
+          gameTemplateId: template.id,
+        },
       });
 
       const choices: QuestionChoice[] = [];
-      for (let i = 0; i < question.choices.length; i++) {
+      for (let i = 0; i < questionChoices.length; i++) {
         const choice = {
-          ...question.choices[i],
+          ...questionChoices[i],
           questionId: newlyCreated.id,
         };
+        choice.id = undefined;
         choice.index = i;
         choice.questionId = newlyCreated.id;
         choices.push(choice);
@@ -145,5 +152,23 @@ export class DbClientService {
       });
     }
     return template;
+  }
+
+  async deleteTemplate(id: number): Promise<void> {
+    await this._prisma.gameTemplates.delete({
+      where: { id: id },
+    });
+
+    const questions = await this._prisma.questions.findMany({
+      where: { gameTemplateId: id },
+    });
+
+    await this._prisma.questions.deleteMany({
+      where: { gameTemplateId: id },
+    });
+
+    await this._prisma.questionChoice.deleteMany({
+      where: { questionId: { in: questions.map((q) => q.id) } },
+    });
   }
 }

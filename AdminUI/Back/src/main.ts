@@ -11,8 +11,6 @@ async function bootstrap() {
     new ValidationPipe({
       transform: true,
       forbidNonWhitelisted: true,
-      whitelist: true,
-      forbidUnknownValues: true,
       enableDebugMessages: true,
     }),
   );

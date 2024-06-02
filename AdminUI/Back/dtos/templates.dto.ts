@@ -1,4 +1,4 @@
-import { Min } from 'class-validator';
+import { IsArray, IsNotEmpty, Min } from 'class-validator';
 import { PagingDto } from './common.dto';
 import { ApiProperty } from '@nestjs/swagger';
 
@@ -26,6 +26,7 @@ export class ChoiceDto {
   id: number;
 
   @ApiProperty()
+  @IsNotEmpty()
   content: string;
 
   @ApiProperty()
@@ -40,6 +41,7 @@ export class QuestionDto {
   id: number;
 
   @ApiProperty()
+  @IsNotEmpty()
   content: string;
 
   @ApiProperty()
@@ -68,5 +70,6 @@ export class GameTemplateDetailDto {
   template: GameTemplateDto;
 
   @ApiProperty({ type: [QuestionDto] })
+  @IsArray()
   questions: QuestionDto[];
 }

@@ -1,4 +1,12 @@
-import { Body, Controller, Get, Param, Post } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Get,
+  HttpException,
+  HttpStatus,
+  Param,
+  Post,
+} from '@nestjs/common';
 import { ApiOkResponse } from '@nestjs/swagger';
 import { GameTemplates } from '@prisma/client';
 import { DbClientService } from 'dal/db-client.service';
@@ -39,6 +47,7 @@ export class TemplatesController {
   async updateTemplate(
     @Body() template: GameTemplateDetailDto,
   ): Promise<GameTemplateDetailDto> {
+    this.validateTemplate(template);
     await this.dbClientService.updateTemplate(template);
     const item = await this.dbClientService.getTemplate(template.template.id);
 
@@ -52,6 +61,7 @@ export class TemplatesController {
   async createTemplate(
     @Body() template: GameTemplateDetailDto,
   ): Promise<GameTemplateDetailDto> {
+    this.validateTemplate(template);
     const created = await this.dbClientService.createTemplate(template);
     const templateAndQuestions = await this.dbClientService.getTemplate(
       created.id,
@@ -61,5 +71,45 @@ export class TemplatesController {
       templateAndQuestions.template,
       templateAndQuestions.questions,
     );
+  }
+
+  validateTemplate(template: GameTemplateDetailDto) {
+    if (!template.template.name) {
+      throw new HttpException('Name is required', HttpStatus.BAD_REQUEST);
+    }
+    if (template.questions.length === 0) {
+      throw new HttpException(
+        'At least one question is required',
+        HttpStatus.BAD_REQUEST,
+      );
+    }
+    template.questions.forEach((q) => {
+      if (!q.content) {
+        throw new HttpException(
+          'Question content is required',
+          HttpStatus.BAD_REQUEST,
+        );
+      }
+      if (q.choices.length === 0) {
+        throw new HttpException(
+          'At least one choice is required',
+          HttpStatus.BAD_REQUEST,
+        );
+      }
+      q.choices.forEach((c) => {
+        if (!c.content) {
+          throw new HttpException(
+            'Choice content is required',
+            HttpStatus.BAD_REQUEST,
+          );
+        }
+      });
+      if (q.choices.filter((c) => c.isValid).length !== 1) {
+        throw new HttpException(
+          'Only one choice can be valid',
+          HttpStatus.BAD_REQUEST,
+        );
+      }
+    });
   }
 }
