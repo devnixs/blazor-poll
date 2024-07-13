@@ -50,10 +50,18 @@
             {
                 @if (CurrentGame?.Status == GameStatus.WaitingForPlayers)
                 {
-                    <h1 class="text-center">
-                        Le jeu va bientôt démarrer, merci de patienter!
-                    </h1>
-                
+                   @if (!_isAdmin)
+                   {
+                       <h1 class="text-center">
+                           Le jeu va bientôt démarrer, merci de patienter!
+                       </h1>
+                   }
+                   else
+                   {
+                       <h1 class="text-center">
+                           Partagez ce QR Code avec vos joueurs
+                       </h1>
+                   }
                     <div class="qrcode-container">
                         @if (CurrentGame is not null)
                         {

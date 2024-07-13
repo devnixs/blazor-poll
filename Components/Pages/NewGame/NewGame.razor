@@ -1,0 +1,180 @@
+﻿@page "/new-game"
+@using Poll.DAL.Services
+@using Poll.DAL
+@using Poll.DAL.Entities
+@inject DatabaseWriteContextProvider DatabaseWriteContextProvider 
+@inject NavigationManager NavigationManager 
+
+<div class="container mt-5">
+    <h2 class="mb-4">Nouveau jeu</h2>
+    <EditForm EditContext="_editContext" OnValidSubmit="OnValidSubmit" FormName="NewGame">
+        <div class="mb-3">
+            <label for="name" class="form-label">Nom du jeu</label>
+            <InputText type="text" class="form-control" @bind-Value="_model.Name" id="name" placeholder=""/>
+            <ValidationMessage For="() => _model.Name"></ValidationMessage>
+        </div>
+
+        <hr/>
+
+        @for (var questionIndex = 0; questionIndex < _model.Questions.Count; questionIndex++)
+        {
+            var question = _model.Questions[questionIndex];
+            var i1 = questionIndex;
+
+            <div class="border border-1 rounded-1 p-3 mb-3">
+                <div class="mb-3">
+                    <label for="@($"questionTitle-{i1}")" class="form-label">Titre de la question #@(i1 + 1)</label>
+                    <InputText type="text" @bind-Value="question.Name" id="@($"questionTitle-{i1}")" class="form-control"/>
+                    <ValidationMessage For="() => question.Name"></ValidationMessage>
+                </div>
+                <div class="mb-3">
+                    <label for="@($"QuestionImage-{i1}")" class="form-label">Image (pendant que la question est posée)</label>
+                    <InputText type="text" @bind-Value="question.QuestionImage" id="@($"QuestionImage-{i1}")" class="form-control"/>
+                    <ValidationMessage For="() => question.QuestionImage"></ValidationMessage>
+                </div>
+                <div class="mb-3">
+                    <label for="@($"ResponseImage-{i1}")" class="form-label">Image (pendant que la réponse est présentée)</label>
+                    <InputText type="text" @bind-Value="question.ResponseImage" id="@($"ResponseImage-{i1}")" class="form-control"/>
+                    <ValidationMessage For="() => question.ResponseImage"></ValidationMessage>
+                </div>
+                
+
+                @for (var choiceIndex = 0; choiceIndex < question.Choices.Count; choiceIndex++)
+                {
+                    var choice = question.Choices[choiceIndex];
+                    var i2 = choiceIndex;
+
+                    <div class="row offset-lg-1">
+                        <div class="mb-3 col">
+                            <label for="@($"ChoiceText-{i1}-{i2}")" class="form-label">Choix #@(i2 + 1)</label>
+                            <InputText type="text" @bind-Value="choice.Content" id="@($"ChoiceText-{i1}-{i2}")" class="form-control"/>
+                            <ValidationMessage For="() => _model.Name"></ValidationMessage>
+                        </div>
+
+                        <div class="mb-3 col">
+                            <div class="form-check pt-4">
+                                <InputCheckbox class="form-check-input" @bind-Value:after="() => OnValidChoiceUpdated(i1, i2)" @bind-Value="@choice.IsValid" type="checkbox" id="@($"ChoiceValid-{i1}-{i2}")"/>
+                                <label class="form-check-label" for="@($"ChoiceValid-{i1}-{i2}")">
+                                    Bonne réponse?
+                                </label>
+                            </div>
+                        </div>
+
+                        <div class="col pt-4">
+                            <button type="button" disabled="@(_model.Questions[i1].Choices.Count <= 1)" class="btn btn-link" @onclick="() => DeleteChoice(i1, i2)">Supprimer ce choix</button>
+                        </div>
+                    </div>
+                }
+                <div class="offset-lg-1"><ValidationMessage For="() => question.Choices"></ValidationMessage></div>
+                <div class="offset-lg-1">
+                    <button type="button" @onclick="() => AddChoice(i1)" class="btn btn-secondary text-white"><i class="fa fa-plus"></i> Ajouter un choix</button>
+                </div>
+
+
+                <button type="button" disabled="@(_model.Questions.Count == 1)" class="btn btn-link mt-3" @onclick="() => DeleteQuestion(i1)">Supprimer cette question</button>
+            </div>
+        }
+        <div class="">
+            <button type="button" @onclick="AddQuestion" class="btn btn-primary text-white"><i class="fa fa-plus"></i> Ajouter une question</button>
+        </div>
+
+        <FluentValidationValidator/>
+
+        <button type="submit" class="btn btn-primary mt-3">Envoyer</button>
+    </EditForm>
+
+</div>
+
+@code{
+
+    private NewGameModel _model = new NewGameModel()
+    {
+        Questions = new List<QuestionModel>
+        {
+            QuestionModel.Default,
+        }
+    };
+
+    EditContext? _editContext;
+
+    public async Task OnValidSubmit()
+    {
+        Console.WriteLine("Form Submitted (valid)");
+        var template = await DatabaseWriteContextProvider.Write<PollContext, GameTemplate>(async db =>
+        {
+            var gameTemplate = new GameTemplate()
+            {
+                Name = _model.Name,
+                Questions = _model.Questions.Select((i, index1) => new Question()
+                {
+                    Content = i.Name,
+                    Index = index1,
+                    PresentingAnswerImageUrl = i.ResponseImage,
+                    AskingQuestionImageUrl = i.QuestionImage,
+                    Choices = i.Choices.Select((c, index2) => new QuestionChoice()
+                    {
+                        Content = c.Content,
+                        IsValid = c.IsValid,
+                        Index = index2,
+                    }).ToList(),
+                }).ToList()
+            };
+            db.GameTemplates.Add(gameTemplate);
+            return gameTemplate;
+        });
+        NavigationManager.NavigateTo("/template/" + template.Identifier+"?Success=true");
+    }
+
+    private void AddChoice(int questionIndex)
+    {
+        _model.Questions[questionIndex].Choices.Add(ChoiceModel.Default);
+    }
+
+    private void AddQuestion()
+    {
+        _model.Questions.Add(QuestionModel.Default);
+    }
+
+    private void DeleteChoice(int questionIndex, int choiceIndex)
+    {
+        if (_model.Questions[questionIndex].Choices.Count <= 2)
+        {
+            return;
+        }
+
+        _model.Questions[questionIndex].Choices = _model.Questions[questionIndex].Choices.Where((_, index) => index != choiceIndex).ToList();
+    }
+
+    private void DeleteQuestion(int questionIndex)
+    {
+        if (_model.Questions.Count == 1)
+        {
+            return;
+        }
+
+        _model.Questions = _model.Questions.Where((_, index) => index != questionIndex).ToList();
+    }
+
+    protected override void OnInitialized()
+    {
+        _model = new()
+        {
+            Name = "",
+            Questions = new List<QuestionModel>()
+            {
+                QuestionModel.Default
+            },
+        };
+        _editContext = new(_model);
+    }
+
+    private void OnValidChoiceUpdated(int questionIndex, int choiceIndex)
+    {
+        for (var index = 0; index < _model.Questions[questionIndex].Choices.Count; index++)
+        {
+            var choice = _model.Questions[questionIndex].Choices[index];
+            choice.IsValid = index == choiceIndex;
+        }
+    }
+
+}

@@ -1,7 +1,9 @@
 using Blazored.LocalStorage;
+using FluentValidation;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Storage;
 using Poll.Components;
+using Poll.Components.Pages.NewGame;
 using Poll.DAL;
 using Poll.DAL.Services;
 using Poll.Middlewares;
@@ -37,6 +39,7 @@ builder.Services.AddTransient<DatabaseReadContextProvider>();
 builder.Services.AddTransient<GameService>();
 builder.Services.AddTransient<Initializer>();
 builder.Services.AddScoped<TransactionContext>();
+builder.Services.AddScoped<IValidator<NewGameModel>, NewGameValidator>();
 
 builder.Services.AddTransient<IInitializer, DbSeeder>();
 

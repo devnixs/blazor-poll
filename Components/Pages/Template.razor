@@ -13,7 +13,15 @@
 <PageTitle>Admin</PageTitle>
 
 <div class="">
-    <h1>Jeu</h1>
+    @if (Success)
+    {
+        <div class="alert alert-success">
+            Ce jeu a été créé. Conservez cette URL soigneusement pour pouvoir démarrer la partie en temps voulu:
+            <br/>
+            <br/>
+            <input class="form-control" value="@Url" disabled>
+        </div>
+    }
 
     <div>
         @if (_loading)
@@ -51,13 +59,32 @@
     private bool _startingGame;
     private bool _loading = true;
 
+    [Inject]
+    public IHttpContextAccessor? CtxAccessor { get; set; }
+    
     [Parameter]
     public string? TemplateIdentifier { get; set; }
+    
+    [SupplyParameterFromQuery]
+    public bool Success { get; set; }
+    
+    public string Url { get; set; }
 
     protected override async Task OnInitializedAsync()
     {
         _template = await DatabaseReadContextProvider.Read<PollContext, GameTemplate?>(async db => await db.GameTemplates.SingleOrDefaultAsync(i => i.Identifier == TemplateIdentifier));
         _loading = false;
+        
+        var ctx = CtxAccessor?.HttpContext;
+        if(ctx is not null && _template is not null)
+        {
+            var hostName = ctx.Request.Host.ToString();
+            var scheme = ctx.Request.Scheme;
+
+            Url = $"{scheme}://{hostName}/template/{_template.Identifier}";
+        }
+
+
         await base.OnInitializedAsync();
     }
 

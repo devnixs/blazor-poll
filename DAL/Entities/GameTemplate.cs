@@ -10,8 +10,8 @@ public class GameTemplate
     public int Id { get; set; }
     
     public string Identifier { get; set; }
-    
-    public DateTimeOffset CreationDate { get; set; }
+
+    public DateTimeOffset CreationDate { get; set; } = DateTimeOffset.UtcNow;
 
     [StringLength(256)]
     [Required]
