@@ -1,13 +1,9 @@
-﻿@page "/admin"
+﻿@page "/adminxy"
 @using Poll.DAL.Entities
 @using Poll.DAL.Services
 @using Poll.DAL
 @using Microsoft.EntityFrameworkCore
-@using Poll.Services
 @inject DatabaseReadContextProvider DatabaseReadContextProvider
-@inject ILogger<Admin> Logger
-@inject GameStateAccessor GameStateAccessor 
-@inject NavigationManager NavigationManager 
 
 <PageTitle>Admin</PageTitle>
 
@@ -27,14 +23,7 @@
                     <div class="card-body">
                         <h5 class="card-title">@template.Name</h5>
                         <p class="card-text">Créé le @template.CreationDate.ToString("dd/MM/yyy")</p>
-                        @if (_startingGame == template.Id)
-                        {
-                            <a class="btn btn-primary"><i class="fa fa-refresh fa-spin fa-fw me-1"></i>  Démarrer</a>
-                        }
-                        else
-                        {
-                            <a @onclick="()=>StartGame(template.Id)" class="btn btn-primary"><i class="fa fa-arrow-right fa-fw me-1"></i> Démarrer</a>
-                        }
+                        <a class="btn btn-primary" href="/template/@template.Identifier">Go</a>
                     </div>
                 </div>
             } 
@@ -44,21 +33,11 @@
 </div>
 
 
-
 @code {
-    private GameTemplate[]? _templates = null;
-    private int? _startingGame = null;
+    private GameTemplate[]? _templates;
     protected override async Task OnInitializedAsync()
     {
         _templates = await DatabaseReadContextProvider.Read<PollContext, GameTemplate[]>(async db => await db.GameTemplates.ToArrayAsync());
         await base.OnInitializedAsync();
-    }
-
-    private async Task StartGame(int gameTemplateId)
-    {
-        Logger.LogInformation("Starting game for template {}", gameTemplateId);
-        _startingGame = gameTemplateId;
-        var game = await GameStateAccessor.CreateGame(gameTemplateId);
-        NavigationManager.NavigateTo("/game/"+game.Id);
     }
 }

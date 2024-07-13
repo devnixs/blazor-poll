@@ -249,7 +249,7 @@
         }
 
         _player = await PlayerService.GetPlayer(CurrentGame.Id);
-        _isAdmin = await PlayerService.IsAdmin();
+        _isAdmin = await PlayerService.IsAdmin(CurrentGame.Id);
         if (_player is null && !_isAdmin)
         {
             Logger.LogInformation("Player doesn't exist. Redirecting.");

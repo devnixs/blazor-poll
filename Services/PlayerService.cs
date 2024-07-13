@@ -20,7 +20,7 @@ public class PlayerService
     }
 
     private string Key = "PlayerId";
-    private string AdminKey = "IsAdmin";
+    private string AdminKey = "Admin_";
     private List<Action> NameChangedHandlers = new();
 
     public void SubscribeNameChanged(Action handler)
@@ -63,11 +63,14 @@ public class PlayerService
         return game?.GetPlayer(playerId);
     }
 
-    public async Task<bool> IsAdmin()
+    public async Task<bool> IsAdmin(Guid gameId)
     {
-        if (!await _localStorage.ContainKeyAsync(AdminKey)) return false;
-
-        return await _localStorage.GetItemAsync<bool>(AdminKey);
+        return await _localStorage.ContainKeyAsync(AdminKey + gameId);
+    }
+    
+    public async Task SetAdmin(Guid gameId)
+    {
+        await _localStorage.SetItemAsStringAsync(AdminKey+gameId, "true");
     }
 
     public async Task<Player?> SetPlayerName(Guid gameId, string name)

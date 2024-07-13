@@ -1,0 +1,73 @@
+﻿@page "/template/{TemplateIdentifier}"
+@using Poll.DAL.Entities
+@using Poll.DAL.Services
+@using Poll.DAL
+@using Microsoft.EntityFrameworkCore
+@using Poll.Services
+@inject DatabaseReadContextProvider DatabaseReadContextProvider
+@inject ILogger<Admin> Logger
+@inject GameStateAccessor GameStateAccessor 
+@inject NavigationManager NavigationManager 
+@inject PlayerService PlayerService 
+
+<PageTitle>Admin</PageTitle>
+
+<div class="">
+    <h1>Jeu</h1>
+
+    <div>
+        @if (_loading)
+        {
+            <div>Chargement...</div>
+        }
+        else if (_template == null)
+        {
+            <div>Jeu non trouvé.</div>
+        }
+        else
+        {
+            <div class="card" style="width: 18rem;">
+                <div class="card-body">
+                    <h5 class="card-title">@_template.Name</h5>
+                    <p class="card-text">Créé le @_template.CreationDate.ToString("dd/MM/yyy")</p>
+                    @if (_startingGame)
+                    {
+                        <a class="btn btn-primary"><i class="fa fa-refresh fa-spin fa-fw me-1"></i> Démarrer</a>
+                    }
+                    else
+                    {
+                        <a @onclick="() => StartGame(_template.Id)" class="btn btn-primary"><i class="fa fa-arrow-right fa-fw me-1"></i> Démarrer</a>
+                    }
+                </div>
+            </div>
+        }
+
+    </div>
+</div>
+
+
+@code {
+    private GameTemplate? _template;
+    private bool _startingGame;
+    private bool _loading = true;
+
+    [Parameter]
+    public string? TemplateIdentifier { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        _template = await DatabaseReadContextProvider.Read<PollContext, GameTemplate?>(async db => await db.GameTemplates.SingleOrDefaultAsync(i => i.Identifier == TemplateIdentifier));
+        _loading = false;
+        await base.OnInitializedAsync();
+    }
+
+    private async Task StartGame(int gameTemplateId)
+    {
+        Logger.LogInformation("Starting game for template {}", gameTemplateId);
+        _startingGame = true;
+        var game = await GameStateAccessor.CreateGame(gameTemplateId);
+        NavigationManager.NavigateTo("/game/" + game.Id);
+        await PlayerService.SetAdmin(game.Id);
+    }
+
+}
