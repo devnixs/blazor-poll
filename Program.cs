@@ -44,6 +44,7 @@ builder.Services.AddScoped<IValidator<NewGameModel>, NewGameValidator>();
 builder.Services.AddTransient<IInitializer, DbSeeder>();
 
 builder.Services.AddHttpContextAccessor();
+builder.Services.AddControllers();
 
 builder.Services.AddBlazoredLocalStorage();
 
@@ -69,6 +70,8 @@ app.UseHttpsRedirection();
 
 app.UseStaticFiles();
 app.UseAntiforgery();
+
+app.MapControllers();
 
 app.MapRazorComponents<App>()
     .AddInteractiveServerRenderMode();

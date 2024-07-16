@@ -2,6 +2,7 @@
 @using Poll.DAL.Services
 @using Poll.DAL
 @using Poll.DAL.Entities
+@using Poll.Components.Components
 @inject DatabaseWriteContextProvider DatabaseWriteContextProvider 
 @inject NavigationManager NavigationManager 
 
@@ -31,6 +32,7 @@
                     <label for="@($"QuestionImage-{i1}")" class="form-label">Image (pendant que la question est posée)</label>
                     <InputText type="text" @bind-Value="question.QuestionImage" id="@($"QuestionImage-{i1}")" class="form-control"/>
                     <ValidationMessage For="() => question.QuestionImage"></ValidationMessage>
+                    <ImageUpload />
                 </div>
                 <div class="mb-3">
                     <label for="@($"ResponseImage-{i1}")" class="form-label">Image (pendant que la réponse est présentée)</label>
@@ -100,7 +102,7 @@
     public async Task OnValidSubmit()
     {
         Console.WriteLine("Form Submitted (valid)");
-        var template = await DatabaseWriteContextProvider.Write<PollContext, GameTemplate>(async db =>
+        var template = await DatabaseWriteContextProvider.Write<PollContext, GameTemplate>(db =>
         {
             var gameTemplate = new GameTemplate()
             {
@@ -117,10 +119,10 @@
                         IsValid = c.IsValid,
                         Index = index2,
                     }).ToList(),
-                }).ToList()
+                }).ToList(),
             };
             db.GameTemplates.Add(gameTemplate);
-            return gameTemplate;
+            return Task.FromResult(gameTemplate);
         });
         NavigationManager.NavigateTo("/template/" + template.Identifier+"?Success=true");
     }
