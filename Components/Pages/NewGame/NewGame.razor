@@ -29,14 +29,14 @@
                     <ValidationMessage For="() => question.Name"></ValidationMessage>
                 </div>
                 <div class="mb-3">
-                    <label for="@($"QuestionImage-{i1}")" class="form-label">Image (pendant que la question est posée)</label>
-                    <InputText type="text" @bind-Value="question.QuestionImage" id="@($"QuestionImage-{i1}")" class="form-control"/>
+                    <label for="@($"QuestionImage-{i1}")" class="form-label">URL de l'image (pendant que la question est posée)</label>
+                    <InputText type="text" @bind-Value="question.QuestionImage" id="@($"QuestionImage-{i1}")" placeholder="https://..." class="form-control"/>
                     <ValidationMessage For="() => question.QuestionImage"></ValidationMessage>
                     <ImageUpload />
                 </div>
                 <div class="mb-3">
-                    <label for="@($"ResponseImage-{i1}")" class="form-label">Image (pendant que la réponse est présentée)</label>
-                    <InputText type="text" @bind-Value="question.ResponseImage" id="@($"ResponseImage-{i1}")" class="form-control"/>
+                    <label for="@($"ResponseImage-{i1}")" class="form-label">URL de l'image (pendant que la réponse est présentée)</label>
+                    <InputText type="text" @bind-Value="question.ResponseImage" id="@($"ResponseImage-{i1}")" placeholder="https://..." class="form-control"/>
                     <ValidationMessage For="() => question.ResponseImage"></ValidationMessage>
                 </div>
                 

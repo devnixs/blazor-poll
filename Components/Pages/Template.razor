@@ -9,6 +9,7 @@
 @inject GameStateAccessor GameStateAccessor 
 @inject NavigationManager NavigationManager 
 @inject PlayerService PlayerService 
+@inject IWebHostEnvironment Env 
 
 <PageTitle>Admin</PageTitle>
 
@@ -79,7 +80,7 @@
         if(ctx is not null && _template is not null)
         {
             var hostName = ctx.Request.Host.ToString();
-            var scheme = ctx.Request.Scheme;
+            var scheme = Env.IsProduction() ? "https" : ctx.Request.Scheme;
 
             Url = $"{scheme}://{hostName}/template/{_template.Identifier}";
         }
