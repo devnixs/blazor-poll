@@ -6,6 +6,11 @@
 @inject DatabaseWriteContextProvider DatabaseWriteContextProvider 
 @inject NavigationManager NavigationManager 
 
+
+<Microsoft.AspNetCore.Components.Sections.SectionContent SectionName="top-bar">
+   <span>Thera Engineering @(DateTimeOffset.UtcNow.Year) </span>
+</Microsoft.AspNetCore.Components.Sections.SectionContent>
+
 <div class="container mt-5">
     <h2 class="mb-4">Nouveau jeu</h2>
     <EditForm EditContext="_editContext" OnValidSubmit="OnValidSubmit" FormName="NewGame">
@@ -32,12 +37,14 @@
                     <label for="@($"QuestionImage-{i1}")" class="form-label">URL de l'image (pendant que la question est posée)</label>
                     <InputText type="text" @bind-Value="question.QuestionImage" id="@($"QuestionImage-{i1}")" placeholder="https://..." class="form-control"/>
                     <ValidationMessage For="() => question.QuestionImage"></ValidationMessage>
+                    <small>Cette image sera présentée pendant que la question est posée</small>
                     <ImageUpload />
                 </div>
                 <div class="mb-3">
                     <label for="@($"ResponseImage-{i1}")" class="form-label">URL de l'image (pendant que la réponse est présentée)</label>
                     <InputText type="text" @bind-Value="question.ResponseImage" id="@($"ResponseImage-{i1}")" placeholder="https://..." class="form-control"/>
                     <ValidationMessage For="() => question.ResponseImage"></ValidationMessage>
+                    <small>Cette image sera présentée pendant que la réponse est affichée</small>
                 </div>
                 
 

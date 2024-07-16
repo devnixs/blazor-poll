@@ -31,6 +31,13 @@ public class GameService
             _logger.LogWarning("Question didn't have a start time, {game}, {currentQuestion}", game, game?.CurrentQuestion);
             return null;
         }
+        
+        if (game.Status != GameStatus.AskingQuestion)
+        {
+            _logger.LogWarning("Bad state to select answer, {status}", game.Status);
+            return null;
+        }
+
 
         var questionChoice = game.CurrentQuestion.Choices
             .Single(i => i.Id == questionChoiceId);
