@@ -18,11 +18,9 @@ public class Question
 
     public ICollection<QuestionChoice> Choices { get; set; } = new List<QuestionChoice>();
 
-    [StringLength(1024)]
-    public string? AskingQuestionImageUrl { get; set; }
+    public Guid? AskingQuestionImageId { get; set; }
     
-    [StringLength(1024)]
-    public string? PresentingAnswerImageUrl { get; set; }
+    public Guid? PresentingAnswerImageId { get; set; }
 
     public override string ToString()
     {

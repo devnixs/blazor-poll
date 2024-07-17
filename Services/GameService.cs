@@ -158,6 +158,12 @@ public class GameService
     {
         var answers = game.Answers.ToArray();
         var players = game.Players.ToArray();
+
+        foreach (var player in players)
+        {
+            player.LastQuestionSuccess = false;
+        }
+
         if (answers.Length == 0)
         {
             return;
@@ -167,7 +173,6 @@ public class GameService
         var minTime = answers.Min(i => i.AnswerTime);
         var span = maxTime - minTime;
         var totalSeconds = span.TotalSeconds >= 1 ? span.TotalSeconds : 1;
-
         foreach (var answer in answers)
         {
             if (answer.IsValid)
@@ -177,11 +182,17 @@ public class GameService
                 if (player is not null)
                 {
                     player.Score += answer.Score;
+                    player.LastQuestionSuccess = true;
                 }
             }
             else
             {
                 answer.Score = 0;
+                var player = players.SingleOrDefault(i => i.Id == answer.PlayerId);
+                if (player is not null)
+                {
+                    player.LastQuestionSuccess = false;
+                }
             }
         }
     }

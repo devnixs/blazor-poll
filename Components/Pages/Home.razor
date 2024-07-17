@@ -101,10 +101,10 @@ else
                     @CurrentGame.CurrentQuestion.Content
                 </h1>
                 
-                if (!string.IsNullOrEmpty(CurrentGame.CurrentQuestion.AskingQuestionImageUrl))
+                if (CurrentGame.CurrentQuestion.AskingQuestionImageId.HasValue)
                 {
                     <div class="image-container">
-                        <img class="image-details" src="@CurrentGame.CurrentQuestion.AskingQuestionImageUrl" alt="Question Image" />
+                        <img class="image-details" src="/file/get/@CurrentGame.CurrentQuestion.AskingQuestionImageId" alt="Question Image" />
                     </div>
                 }
 
@@ -139,10 +139,10 @@ else
                     @CurrentGame.CurrentQuestion.Content
                 </h1>
 
-                if (!string.IsNullOrEmpty(CurrentGame.CurrentQuestion.PresentingAnswerImageUrl))
+                if (CurrentGame.CurrentQuestion.PresentingAnswerImageId.HasValue)
                 {
                     <div class="image-container">
-                        <img class="image-details" src="@CurrentGame.CurrentQuestion.PresentingAnswerImageUrl" alt="Question Image" />
+                        <img class="image-details" src="/file/get/@CurrentGame.CurrentQuestion.PresentingAnswerImageId" alt="Question Image" />
                     </div>
                 }
 
@@ -208,6 +208,11 @@ else
                             }
 
                             @p.Name.Substring(0, Math.Min(p.Name.Length, 15))
+                            
+                            @if (p.LastQuestionSuccess == true)
+                            {
+                                <span class="m-2">✅</span>
+                            }
                         </span>
 
                         @if (CurrentGame.Status is GameStatus.Completed or GameStatus.AskingQuestion or GameStatus.DisplayQuestionResult)

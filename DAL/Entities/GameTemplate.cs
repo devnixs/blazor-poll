@@ -18,6 +18,8 @@ public class GameTemplate
     public string Name { get; set; }
 
     public ICollection<Question> Questions { get; set; } = new List<Question>();
+    
+    public ICollection<GameFile> Files { get; set; } = new List<GameFile>();
 
     public GameTemplate()
     {

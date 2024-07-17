@@ -1,11 +1,13 @@
 ﻿@page "/new-game"
 @page "/new-game/{IdentifierParameter}"
+@page "/edit-game/{ExistingTemplateIdentifier}"
 @using Microsoft.EntityFrameworkCore
 @using Poll.DAL.Services
 @using Poll.DAL
 @using Poll.DAL.Entities
 @using Poll.Components.Components
 @using Poll.Services
+@using Serilog
 @inject DatabaseWriteContextProvider DatabaseWriteContextProvider 
 @inject DatabaseReadContextProvider DatabaseReadContextProvider 
 @inject NavigationManager NavigationManager 
@@ -20,7 +22,14 @@
 </Microsoft.AspNetCore.Components.Sections.SectionContent>
 
 <div class="container mt-5">
-    <h2 class="mb-4">Nouveau jeu</h2>
+    @if (IsEditingMode)
+    {
+        <h2 class="mb-4">Nouveau jeu</h2>
+    }
+    else
+    {
+        <h2 class="mb-4">Modifier le jeu</h2>
+    }
     <EditForm EditContext="_editContext" OnValidSubmit="OnValidSubmit" FormName="NewGame">
         <div class="mb-3">
             <label for="name" class="form-label">Nom du jeu</label>
@@ -95,7 +104,16 @@
 
         <FluentValidationValidator/>
 
-        <button type="submit" class="btn btn-primary mt-3">Envoyer</button>
+        @if (_saving)
+        {
+            <button type="button" disabled class="btn btn-primary mt-3">
+                <i class="fa fa-refresh fa-spin fa-fw me-1"></i> Envoyer
+            </button>
+        }
+        else
+        {
+            <button type="submit" class="btn btn-primary mt-3">Envoyer</button>
+        }
     </EditForm>
 
 </div>
@@ -106,6 +124,9 @@
     public string? IdentifierParameter { get; set; }
 
     public Guid? Identifier => Guid.TryParse(IdentifierParameter, out var result) ? result : null;
+
+    [Parameter]
+    public string? ExistingTemplateIdentifier { get; set; }
 
     private NewGameModel _model = new NewGameModel()
     {
@@ -119,13 +140,35 @@
 
     EditContext? _editContext;
 
+    private bool _saving = false;
+
     public async Task OnValidSubmit()
     {
         Logger.LogInformation("Form Submitted (valid)");
 
-        var template = await GameCreatorService.CreateGame(_model);
+        _saving = true;
+        try
+        {
+            GameTemplate template;
+            if (IsEditingMode && ExistingTemplateIdentifier != null)
+            {
+                template = await GameCreatorService.UpdateGame(ExistingTemplateIdentifier, _model);
+            }
+            else
+            {
+                template = await GameCreatorService.CreateGame(_model);
+            }
 
-        NavigationManager.NavigateTo("/template/" + template.Identifier + "?Success=true");
+            NavigationManager.NavigateTo("/template/" + template.Identifier + "?Success=true");
+        }
+        catch (Exception e)
+        {
+            Logger.LogError(e, "Could not save game");
+        }
+        finally
+        {
+            _saving = false;
+        }
     }
 
     protected override Task OnAfterRenderAsync(bool firstRender)
@@ -176,6 +219,8 @@
         _model.Questions = _model.Questions.Where((_, index) => index != questionIndex).ToList();
     }
 
+    private bool IsEditingMode => !string.IsNullOrEmpty(ExistingTemplateIdentifier);
+
     protected override async Task OnInitializedAsync()
     {
         _model = new()
@@ -190,7 +235,11 @@
 
         if (Identifier is null)
         {
-            if (!(await HttpUtils.IsPreRendering()))
+            if (IsEditingMode)
+            {
+                await LoadExistingTemplate();
+            }
+            else if (!(await HttpUtils.IsPreRendering()))
             {
                 NavigationManager.NavigateTo("/new-game/" + Guid.NewGuid());
                 return;
@@ -206,6 +255,48 @@
         }
 
         _editContext = new(_model);
+    }
+
+    private async Task LoadExistingTemplate()
+    {
+        var template = await DatabaseReadContextProvider.Read<PollContext, GameTemplate?>(async db =>
+        {
+            return await db.GameTemplates
+                .Include(i => i.Files)
+                .Include(i => i.Questions)
+                .ThenInclude(i => i.Choices)
+                .SingleOrDefaultAsync(i => i.Identifier == ExistingTemplateIdentifier);
+        });
+
+        if (template is null)
+        {
+            NavigationManager.NavigateTo("/not-found/");
+            return;
+        }
+
+        _model = new NewGameModel
+        {
+            Name = template.Name
+        };
+
+        foreach (var question in template.Questions)
+        {
+            var matchingFile1 = template.Files.FirstOrDefault(i => question.AskingQuestionImageId == i.Id);
+            var matchingFile2 = template.Files.FirstOrDefault(i => question.PresentingAnswerImageId == i.Id);
+            _model.Questions.Add(new QuestionModel()
+            {
+                Name = question.Content,
+                QuestionImageId = matchingFile1?.Id,
+                ResponseImageId = matchingFile2?.Id,
+                Choices = question.Choices
+                    .OrderBy(i => i.Index)
+                    .Select(c => new ChoiceModel()
+                    {
+                        Content = c.Content,
+                        IsValid = c.IsValid,
+                    }).ToList()
+            });
+        }
     }
 
     private void OnValidChoiceUpdated(int questionIndex, int choiceIndex)
