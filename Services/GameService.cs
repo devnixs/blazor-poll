@@ -164,13 +164,15 @@ public class GameService
         }
         
         var maxTime = answers.Max(i => i.AnswerTime);
-        var totalSeconds = maxTime.TotalSeconds > 0 ? maxTime.TotalSeconds : 1;
+        var minTime = answers.Min(i => i.AnswerTime);
+        var span = maxTime - minTime;
+        var totalSeconds = span.TotalSeconds >= 1 ? span.TotalSeconds : 1;
 
         foreach (var answer in answers)
         {
             if (answer.IsValid)
             {
-                answer.Score = (int)Math.Floor(100d + 20d * (1d - answer.AnswerTime.TotalSeconds / totalSeconds));
+                answer.Score = (int)Math.Floor(100d + 20d * (1d - (answer.AnswerTime.TotalSeconds - minTime.TotalSeconds)  / totalSeconds));
                 var player = players.SingleOrDefault(i => i.Id == answer.PlayerId);
                 if (player is not null)
                 {

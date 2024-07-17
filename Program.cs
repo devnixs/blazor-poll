@@ -14,6 +14,7 @@ using Poll.Services.Abstractions;
 using Serilog;
 using Serilog.Events;
 using Serilog.Sinks.Graylog;
+using Serilog.Sinks.SystemConsole.Themes;
 
 Console.WriteLine("Starting app");
 
@@ -34,7 +35,7 @@ builder.Services.AddSerilog((services, lc) =>
 {
     var config = lc.MinimumLevel.Override("Microsoft", LogEventLevel.Information)
         .Enrich.FromLogContext()
-        .WriteTo.Console();
+        .WriteTo.Console(theme: AnsiConsoleTheme.Code);
 
     var graylogUrl = builder.Configuration["GRAYLOG_URL"];
     if (!string.IsNullOrEmpty(graylogUrl))

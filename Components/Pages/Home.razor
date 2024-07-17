@@ -8,7 +8,18 @@
 @inject ILogger<Home> HomeLogger
 @inherits Poll.Components.Components.BaseRefreshableComponent
 
-<PageTitle>Home</PageTitle>
+@if (CurrentGame is null)
+{
+    <PageTitle>Home</PageTitle>
+}
+else if (_isAdmin)
+{
+    <PageTitle>Admin: @CurrentGame.Template.Name</PageTitle>
+}
+else
+{
+    <PageTitle>@CurrentGame.Template.Name</PageTitle>
+}
 
 
 <Microsoft.AspNetCore.Components.Sections.SectionContent SectionName="top-bar">
@@ -201,7 +212,7 @@
 
                         @if (CurrentGame.Status is GameStatus.Completed or GameStatus.AskingQuestion or GameStatus.DisplayQuestionResult)
                         {
-                            <span class="badge bg-primary">@p.Score</span>
+                            <span class="badge bg-primary">@p.Score.ToString("### ### ##0")</span>
                         }
                     </div>
                 }
