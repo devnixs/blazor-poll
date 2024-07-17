@@ -37,7 +37,6 @@ public abstract class BaseRefreshableComponent : ComponentBase, IDisposable
             return;
         }
         
-        Logger.LogInformation("State Changed");
         AfterRefresh();
         InvokeAsync(StateHasChanged);
     }

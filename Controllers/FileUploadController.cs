@@ -21,7 +21,12 @@ public class FileUploadController : Controller
         var filePath = Path.Combine("UploadedFiles", file.FileName);
 
         // Ensure the directory exists
-        Directory.CreateDirectory(Path.GetDirectoryName(filePath));
+        var directoryName = Path.GetDirectoryName(filePath);
+        if (directoryName is null)
+        {
+            return BadRequest("Invalid path.");
+        }
+        Directory.CreateDirectory(directoryName);
 
         using (var stream = new FileStream(filePath, FileMode.Create))
         {

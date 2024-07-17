@@ -1,8 +1,11 @@
 ﻿using System.Collections.Concurrent;
+using System.Text.Json;
+using System.Text.Json.Serialization;
 using Microsoft.EntityFrameworkCore;
 using Poll.DAL;
 using Poll.DAL.Entities;
 using Poll.DAL.Services;
+using Poll.Utils;
 
 namespace Poll.Services;
 
@@ -103,6 +106,7 @@ public class GameState : IDisposable
 
     public void PlayerHeartBeat(Player player)
     {
+        _logger.LogInformation("Player heartbeat: {player}", JsonSerializer.Serialize(player, Serialization.DefaultSerializationOptions));
         if (_players.TryGetValue(player.Id, out var p))
         {
             p.HeartBeat = DateTimeOffset.UtcNow;
@@ -120,7 +124,7 @@ public class GameState : IDisposable
         foreach (var player in _players)
         {
             var ellapsed = DateTimeOffset.UtcNow - player.Value.HeartBeat;
-            if (ellapsed > TimeSpan.FromSeconds(20))
+            if (ellapsed > TimeSpan.FromSeconds(60))
             {
                 _logger.LogInformation("Player {} has been disconnected", player.Value.Name);
                 oneRemoved = oneRemoved || _players.TryRemove(player);
@@ -143,6 +147,7 @@ public class GameState : IDisposable
         var added = _players.TryAdd(player.Id, player);
         if (added)
         {
+            _logger.LogInformation("Player set: {player}", JsonSerializer.Serialize(player, Serialization.DefaultSerializationOptions));
             OnStateChanged();
         }
     }
@@ -185,6 +190,7 @@ public class GameState : IDisposable
                 _answers.Remove(a);
             }
 
+            _logger.LogInformation("Answer added : {answer}", JsonSerializer.Serialize(answer, Serialization.DefaultSerializationOptions));
             _answers.Add(answer);
         }
 
@@ -205,6 +211,7 @@ public class GameState : IDisposable
                 break;
         }
 
+        _logger.LogInformation("Switched to new state : {newStatus}", newStatus);
         OnStateChanged();
     }
 
@@ -219,6 +226,7 @@ public class GameState : IDisposable
 
         if (question is not null)
         {
+            _logger.LogInformation("Switched to new question : {question}", JsonSerializer.Serialize(question, Serialization.DefaultSerializationOptions));
             SetState(GameStatus.AskingQuestion);
         }
     }

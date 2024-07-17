@@ -191,6 +191,10 @@
                             {
                                 <span class="me-1">💯</span>
                             }
+                            else if (index == _allPlayers.Length -1 && _allPlayers.Length >= 1 && _allPlayers[0].Score > 300)
+                            {
+                                <span class="me-1">💩</span>
+                            }
 
                             @p.Name.Substring(0, Math.Min(p.Name.Length, 15))
                         </span>

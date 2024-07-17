@@ -1,4 +1,6 @@
+using System.Reflection;
 using Blazored.LocalStorage;
+using dotenv.net;
 using FluentValidation;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Storage;
@@ -9,8 +11,16 @@ using Poll.DAL.Services;
 using Poll.Middlewares;
 using Poll.Services;
 using Poll.Services.Abstractions;
+using Serilog;
+using Serilog.Events;
+using Serilog.Sinks.Graylog;
 
 Console.WriteLine("Starting app");
+
+DotEnv.Load();
+
+Log.Logger = new LoggerConfiguration()
+    .CreateBootstrapLogger();
 
 /* Dependency Injection Registration */
 
@@ -19,6 +29,26 @@ var builder = WebApplication.CreateBuilder(args);
 // Add services to the container.
 builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents();
+
+builder.Services.AddSerilog((services, lc) =>
+{
+    var config = lc.MinimumLevel.Override("Microsoft", LogEventLevel.Information)
+        .Enrich.FromLogContext()
+        .WriteTo.Console();
+
+    var graylogUrl = builder.Configuration["GRAYLOG_URL"];
+    if (!string.IsNullOrEmpty(graylogUrl))
+    {
+        Console.WriteLine("Sending logs to " + graylogUrl);
+        var assemblyName = Assembly.GetEntryAssembly()?.GetName();
+        config = config.WriteTo.Graylog(new GraylogSinkOptions
+        {
+            HostnameOrAddress = graylogUrl,
+            Port = 22201,
+            Facility = assemblyName?.Name
+        });
+    }
+});
 
 builder.Services.AddDbContext<PollContext>(options =>
 {
@@ -67,6 +97,7 @@ if (!app.Environment.IsDevelopment())
 }
 
 app.UseHttpsRedirection();
+app.UseSerilogRequestLogging();
 
 app.UseStaticFiles();
 app.UseAntiforgery();
