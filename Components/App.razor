@@ -1,25 +1,55 @@
-﻿<!DOCTYPE html>
+﻿@inject IWebHostEnvironment Env
+<!DOCTYPE html>
 <html lang="en">
 
 <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <base href="/" />
-    <link rel="stylesheet" href="bootstrap/bootstrap.min.css" />
-    <link rel="stylesheet" href="app.css" />
-    <link rel="stylesheet" href="Poll.styles.css" />
-    <link rel="icon" type="image/png" href="favicon.png" />
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.css" integrity="sha512-5A8nwdMOWrSz20fDsjczgUidUBR8liPYU+WymTZP1lmY9G6Oc7HlZv156XqnsgNUzTyMefFTcsFH/tnJE/+xBg==" crossorigin="anonymous" referrerpolicy="no-referrer" />
-    <HeadOutlet />
+    <meta charset="utf-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <base href="/"/>
+    <link rel="stylesheet" href="/bootstrap/bootstrap.min.css"/>
+    <link rel="stylesheet" href="/app.css"/>
+    <link rel="stylesheet" href="/Poll.styles.css"/>
+    <link rel="icon" type="image/png" href="favicon.png"/>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.css" integrity="sha512-5A8nwdMOWrSz20fDsjczgUidUBR8liPYU+WymTZP1lmY9G6Oc7HlZv156XqnsgNUzTyMefFTcsFH/tnJE/+xBg==" crossorigin="anonymous" referrerpolicy="no-referrer"/>
+
+    @if (!Env.IsDevelopment())
+    {
+        <link rel="stylesheet" href="/filepond/filepond.min.css"/>
+        <link rel="stylesheet" href="/filepond/filepond-plugin-image-preview.min.css"/>
+    }
+    else
+    {
+        <link rel="stylesheet" href="/filepond/filepond.css"/>
+        <link rel="stylesheet" href="/filepond/filepond-plugin-image-preview.css"/>
+    }
+
+    <HeadOutlet/>
 </head>
 
 <body>
-    <Routes @rendermode="InteractiveServer"  />
-    <script src="_framework/blazor.web.js"></script>
-    
-        <script>
+<Routes @rendermode="InteractiveServer"/>
+<script src="_framework/blazor.web.js"></script>
+
+<script>
           window.jsMethod = () => {};
         </script>
-    </body>
+
+@if (!Env.IsDevelopment())
+{
+    <script src="/filepond/filepond.min.js"></script>
+    <script src="/filepond/filepond-plugin-file-validate-size.min.js"></script>
+    <script src="/filepond/filepond-plugin-image-exif-orientation.min.js"></script>
+    <script src="/filepond/filepond-plugin-image-preview.min.js"></script>
+}
+else
+{
+    <script src="/filepond/filepond.js"></script>
+    <script src="/filepond/filepond-plugin-file-validate-size.js"></script>
+    <script src="/filepond/filepond-plugin-image-exif-orientation.js"></script>
+    <script src="/filepond/filepond-plugin-image-preview.js"></script>
+}
+
+<script src="/filepond/filepond-main.js"></script>
+</body>
 
 </html>

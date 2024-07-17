@@ -1,9 +1,73 @@
 ﻿@using System.Text
+@using Poll.Services
 @namespace Poll.Components.Components
 
+<input type="file"
+       class="filepond"
+       name="filepond-@Id"
+       id="input-@Id"
+       data-allow-reorder="true"
+       data-max-file-size="10MB"
+       data-max-files="1">
 
 @code{
+    public Guid Id { get; set; } = Guid.NewGuid();
 
+    [Inject]
+    public IJSRuntime? JsRuntime { get; set; }
     
+    [Inject]
+    public HttpUtils? HttpUtils { get; set; }
+    
+    [Inject]
+    public ILogger<ImageUpload>? Logger { get; set; }
 
+    [Parameter]
+    public Action<Guid?> OnFileReady { get; set; } = _ => { };
+
+    [Parameter]
+    public Guid? Value { get; set; }
+
+    [JSInvokable]
+    public Task<int> OnFileUploaded(string fileId)
+    {
+        if (Guid.TryParse(fileId, out var guid))
+        {
+            Logger?.LogInformation("File added {file}", fileId);
+            OnFileReady?.Invoke(guid);
+        }
+        return Task.FromResult(1);
+    }
+
+    [JSInvokable]
+    public Task<int> OnFileRemoved(string fileId)
+    {
+        OnFileReady?.Invoke(null);
+        Logger?.LogInformation("File Removed");
+        return Task.FromResult(1);
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (HttpUtils is null || JsRuntime is null || Logger is null)
+        {
+            return;
+        }
+        
+        if (await HttpUtils.IsPreRendering())
+        {
+            return;
+        }
+
+        if (!firstRender)
+        {
+            return;
+        }
+        
+        var thisRef = DotNetObjectReference.Create(this);
+        await JsRuntime.InvokeAsync<object>("createFilePond", thisRef, "#input-" + Id, Value?.ToString());
+        Logger.LogInformation("Loaded image upload component");
+
+        await base.OnAfterRenderAsync(firstRender);
+    }
 }

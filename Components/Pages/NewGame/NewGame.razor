@@ -1,14 +1,22 @@
 ﻿@page "/new-game"
+@page "/new-game/{IdentifierParameter}"
+@using Microsoft.EntityFrameworkCore
 @using Poll.DAL.Services
 @using Poll.DAL
 @using Poll.DAL.Entities
 @using Poll.Components.Components
+@using Poll.Services
 @inject DatabaseWriteContextProvider DatabaseWriteContextProvider 
+@inject DatabaseReadContextProvider DatabaseReadContextProvider 
 @inject NavigationManager NavigationManager 
-
+@inject ILogger<NewGame> Logger;
+@inject GameCreatorService GameCreatorService;
+@inject HttpUtils HttpUtils;
+@implements IDisposable;
+@implements IAsyncDisposable;
 
 <Microsoft.AspNetCore.Components.Sections.SectionContent SectionName="top-bar">
-   <span>Thera Engineering @(DateTimeOffset.UtcNow.Year) </span>
+    <span>Thera Engineering @(DateTimeOffset.UtcNow.Year) </span>
 </Microsoft.AspNetCore.Components.Sections.SectionContent>
 
 <div class="container mt-5">
@@ -33,35 +41,31 @@
                     <InputText type="text" @bind-Value="question.Name" id="@($"questionTitle-{i1}")" class="form-control"/>
                     <ValidationMessage For="() => question.Name"></ValidationMessage>
                 </div>
-                <div class="mb-3">
-                    <label for="@($"QuestionImage-{i1}")" class="form-label">URL de l'image (pendant que la question est posée)</label>
-                    <InputText type="text" @bind-Value="question.QuestionImage" id="@($"QuestionImage-{i1}")" placeholder="https://..." class="form-control"/>
-                    <ValidationMessage For="() => question.QuestionImage"></ValidationMessage>
-                    <small>Cette image sera présentée pendant que la question est posée</small>
-                    <ImageUpload />
+                <div class="mb-5">
+                    <label for="@($"QuestionImage-{i1}")" class="form-label">Image facultative affichée pendant que la question est posée</label>
+                    <ImageUpload value="@question.QuestionImageId" OnFileReady="(id) => question.QuestionImageId = id"/>
+                    <ValidationMessage For="() => question.QuestionImageId"></ValidationMessage>
                 </div>
-                <div class="mb-3">
-                    <label for="@($"ResponseImage-{i1}")" class="form-label">URL de l'image (pendant que la réponse est présentée)</label>
-                    <InputText type="text" @bind-Value="question.ResponseImage" id="@($"ResponseImage-{i1}")" placeholder="https://..." class="form-control"/>
-                    <ValidationMessage For="() => question.ResponseImage"></ValidationMessage>
-                    <small>Cette image sera présentée pendant que la réponse est affichée</small>
+                <div class="mb-5">
+                    <label for="@($"ResponseImage-{i1}")" class="form-label">Image facultative affichée pendant que la réponse est présentée</label>
+                    <ImageUpload value="@question.ResponseImageId" OnFileReady="(id) => question.ResponseImageId = id"/>
+                    <ValidationMessage For="() => question.ResponseImageId"></ValidationMessage>
                 </div>
-                
+
 
                 @for (var choiceIndex = 0; choiceIndex < question.Choices.Count; choiceIndex++)
                 {
                     var choice = question.Choices[choiceIndex];
                     var i2 = choiceIndex;
 
-                    <div class="row offset-lg-1">
-                        <div class="mb-3 col">
-                            <label for="@($"ChoiceText-{i1}-{i2}")" class="form-label">Choix #@(i2 + 1)</label>
-                            <InputText type="text" @bind-Value="choice.Content" id="@($"ChoiceText-{i1}-{i2}")" class="form-control"/>
+                    <div class="row offset-lg-1 align-items-center mb-4">
+                        <div class="col-md-4">
+                            <InputText type="text" placeholder="@($"Choix #{i2 + 1}")" @bind-Value="choice.Content" id="@($"ChoiceText-{i1}-{i2}")" class="form-control"/>
                             <ValidationMessage For="() => _model.Name"></ValidationMessage>
                         </div>
 
-                        <div class="mb-3 col">
-                            <div class="form-check pt-4">
+                        <div class="col-md-4">
+                            <div class="form-check">
                                 <InputCheckbox class="form-check-input" @bind-Value:after="() => OnValidChoiceUpdated(i1, i2)" @bind-Value="@choice.IsValid" type="checkbox" id="@($"ChoiceValid-{i1}-{i2}")"/>
                                 <label class="form-check-label" for="@($"ChoiceValid-{i1}-{i2}")">
                                     Bonne réponse?
@@ -69,18 +73,20 @@
                             </div>
                         </div>
 
-                        <div class="col pt-4">
-                            <button type="button" disabled="@(_model.Questions[i1].Choices.Count <= 1)" class="btn btn-link" @onclick="() => DeleteChoice(i1, i2)">Supprimer ce choix</button>
+                        <div class="col col-md-4">
+                            <button type="button" disabled="@(_model.Questions[i1].Choices.Count <= 1)" class="btn btn-link p-0" @onclick="() => DeleteChoice(i1, i2)">Supprimer ce choix</button>
                         </div>
                     </div>
                 }
-                <div class="offset-lg-1"><ValidationMessage For="() => question.Choices"></ValidationMessage></div>
+                <div class="offset-lg-1">
+                    <ValidationMessage For="() => question.Choices"></ValidationMessage>
+                </div>
                 <div class="offset-lg-1">
                     <button type="button" @onclick="() => AddChoice(i1)" class="btn btn-secondary text-white"><i class="fa fa-plus"></i> Ajouter un choix</button>
                 </div>
 
 
-                <button type="button" disabled="@(_model.Questions.Count == 1)" class="btn btn-link mt-3" @onclick="() => DeleteQuestion(i1)">Supprimer cette question</button>
+                <button type="button" disabled="@(_model.Questions.Count == 1)" class="btn btn-link mt-3 p-0" @onclick="() => DeleteQuestion(i1)">Supprimer cette question</button>
             </div>
         }
         <div class="">
@@ -96,42 +102,48 @@
 
 @code{
 
+    [Parameter]
+    public string? IdentifierParameter { get; set; }
+
+    public Guid? Identifier => Guid.TryParse(IdentifierParameter, out var result) ? result : null;
+
     private NewGameModel _model = new NewGameModel()
     {
         Questions = new List<QuestionModel>
         {
             QuestionModel.Default,
-        }
+        },
     };
+
+    private Timer? _saveTimer = null;
 
     EditContext? _editContext;
 
     public async Task OnValidSubmit()
     {
-        Console.WriteLine("Form Submitted (valid)");
-        var template = await DatabaseWriteContextProvider.Write<PollContext, GameTemplate>(db =>
+        Logger.LogInformation("Form Submitted (valid)");
+
+        var template = await GameCreatorService.CreateGame(_model);
+
+        NavigationManager.NavigateTo("/template/" + template.Identifier + "?Success=true");
+    }
+
+    protected override Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
         {
-            var gameTemplate = new GameTemplate()
-            {
-                Name = _model.Name,
-                Questions = _model.Questions.Select((i, index1) => new Question()
-                {
-                    Content = i.Name,
-                    Index = index1,
-                    PresentingAnswerImageUrl = i.ResponseImage,
-                    AskingQuestionImageUrl = i.QuestionImage,
-                    Choices = i.Choices.Select((c, index2) => new QuestionChoice()
-                    {
-                        Content = c.Content,
-                        IsValid = c.IsValid,
-                        Index = index2,
-                    }).ToList(),
-                }).ToList(),
-            };
-            db.GameTemplates.Add(gameTemplate);
-            return Task.FromResult(gameTemplate);
-        });
-        NavigationManager.NavigateTo("/template/" + template.Identifier+"?Success=true");
+            _saveTimer = new Timer(cb => { SaveData(); }, null, TimeSpan.Zero, TimeSpan.FromSeconds(15));
+        }
+
+        return base.OnAfterRenderAsync(firstRender);
+    }
+
+    private void SaveData()
+    {
+        if (Identifier.HasValue)
+        {
+            GameCreatorService.SaveFormState(_model, Identifier.Value);
+        }
     }
 
     private void AddChoice(int questionIndex)
@@ -164,16 +176,35 @@
         _model.Questions = _model.Questions.Where((_, index) => index != questionIndex).ToList();
     }
 
-    protected override void OnInitialized()
+    protected override async Task OnInitializedAsync()
     {
         _model = new()
         {
             Name = "",
             Questions = new List<QuestionModel>()
             {
-                QuestionModel.Default
+                QuestionModel.Default,
             },
         };
+        _editContext = new(_model);
+
+        if (Identifier is null)
+        {
+            if (!(await HttpUtils.IsPreRendering()))
+            {
+                NavigationManager.NavigateTo("/new-game/" + Guid.NewGuid());
+                return;
+            }
+        }
+        else
+        {
+            var existingForm = GameCreatorService.RestoreFormState(Identifier.Value);
+            if (existingForm is not null)
+            {
+                _model = existingForm;
+            }
+        }
+
         _editContext = new(_model);
     }
 
@@ -183,6 +214,24 @@
         {
             var choice = _model.Questions[questionIndex].Choices[index];
             choice.IsValid = index == choiceIndex;
+        }
+    }
+
+    public void Dispose()
+    {
+        _saveTimer?.Dispose();
+
+        if (Identifier.HasValue)
+        {
+            GameCreatorService.CleanFormState(Identifier.Value);
+        }
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        if (_saveTimer != null)
+        {
+            await _saveTimer.DisposeAsync();
         }
     }
 

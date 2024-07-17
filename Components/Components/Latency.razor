@@ -1,0 +1,52 @@
+﻿@inject IJSRuntime JS
+@inject ILogger<Latency> Logger
+@implements IDisposable
+@implements IAsyncDisposable
+@namespace Poll.Components.Components
+
+@if (_latency is not null)
+{
+    <span id="latency-display">Ping: @(_latency.Value.TotalMilliseconds.ToString("### ##0"))ms</span>
+}
+
+@code {
+    private DateTimeOffset _startTime;
+    private TimeSpan? _latency;
+    private Timer? _timer;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            _timer = new Timer((cb) =>
+            {
+                var _ = ComputeLatency();
+            }, null, TimeSpan.FromSeconds(0), TimeSpan.FromSeconds(10));
+            await ComputeLatency();
+        }
+    }
+
+    private async Task ComputeLatency()
+    {
+        _startTime = DateTimeOffset.UtcNow;
+        var _ = await JS.InvokeAsync<string>("toString");
+        _latency = DateTimeOffset.UtcNow - _startTime;
+        await InvokeAsync(StateHasChanged);
+    }
+
+    public void Dispose()
+    {
+        _timer?.Dispose();
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        if (_timer != null)
+        {
+            await _timer.DisposeAsync();
+        }
+
+        ;
+    }
+
+}

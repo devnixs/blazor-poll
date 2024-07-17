@@ -15,22 +15,22 @@ public class QuestionModel
     [Required]
     public string Name { get; set; } = "";
 
-    public string QuestionImage { get; set; } = "";
-    public string ResponseImage { get; set; } = "";
+    public Guid? QuestionImageId { get; set; }
+    public Guid? ResponseImageId { get; set; }
 
     public List<ChoiceModel> Choices { get; set; } = new List<ChoiceModel>();
 
     public static QuestionModel Default => new QuestionModel()
     {
         Name = "",
-        QuestionImage = "",
-        ResponseImage = "",
-        Choices = new List<ChoiceModel>
-        {
+        QuestionImageId = null,
+        ResponseImageId = null,
+        Choices =
+        [
             ChoiceModel.DefaultValid,
             ChoiceModel.Default,
             ChoiceModel.Default,
-        }
+        ],
     };
 }
 

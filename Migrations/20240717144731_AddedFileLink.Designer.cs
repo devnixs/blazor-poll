@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 using Poll.DAL;
@@ -11,9 +12,11 @@ using Poll.DAL;
 namespace Poll.Migrations
 {
     [DbContext(typeof(PollContext))]
-    partial class PollContextModelSnapshot : ModelSnapshot
+    [Migration("20240717144731_AddedFileLink")]
+    partial class AddedFileLink
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -30,24 +33,21 @@ namespace Poll.Migrations
 
                     b.Property<string>("ContentType")
                         .IsRequired()
-                        .HasMaxLength(64)
-                        .HasColumnType("character varying(64)");
+                        .HasColumnType("text");
 
                     b.Property<DateTimeOffset>("CreationDate")
                         .HasColumnType("timestamp with time zone");
 
-                    b.Property<int?>("GameTemplateId")
+                    b.Property<int>("GameTemplateId")
                         .HasColumnType("integer");
 
                     b.Property<string>("OriginalFilename")
                         .IsRequired()
-                        .HasMaxLength(512)
-                        .HasColumnType("character varying(512)");
+                        .HasColumnType("text");
 
                     b.Property<string>("Path")
                         .IsRequired()
-                        .HasMaxLength(512)
-                        .HasColumnType("character varying(512)");
+                        .HasColumnType("text");
 
                     b.Property<long>("Size")
                         .HasColumnType("bigint");
@@ -153,7 +153,9 @@ namespace Poll.Migrations
                 {
                     b.HasOne("Poll.DAL.Entities.GameTemplate", "GameTemplate")
                         .WithMany()
-                        .HasForeignKey("GameTemplateId");
+                        .HasForeignKey("GameTemplateId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
 
                     b.Navigation("GameTemplate");
                 });

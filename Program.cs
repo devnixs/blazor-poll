@@ -61,7 +61,9 @@ builder.Services.AddDbContext<PollContext>(options =>
 });
 
 builder.Services.AddLogging();
+builder.Services.AddScoped<FileManager>();
 builder.Services.AddScoped<PlayerService>();
+builder.Services.AddScoped<GameCreatorService>();
 builder.Services.AddSingleton<GameStateAccessor>();
 builder.Services.AddHostedService(i => i.GetRequiredService<GameStateAccessor>());
 builder.Services.AddTransient<HttpUtils>();
@@ -76,6 +78,7 @@ builder.Services.AddTransient<IInitializer, DbSeeder>();
 
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddControllers();
+builder.Services.AddMemoryCache();
 
 builder.Services.AddBlazoredLocalStorage();
 
