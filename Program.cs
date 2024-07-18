@@ -1,4 +1,5 @@
 using System.Reflection;
+using System.Text.Json;
 using Blazored.LocalStorage;
 using dotenv.net;
 using FluentValidation;
@@ -33,7 +34,10 @@ builder.Services.AddRazorComponents()
 
 builder.Services.AddSerilog((services, lc) =>
 {
-    var config = lc.MinimumLevel.Override("Microsoft", LogEventLevel.Information)
+    var config = lc
+        .MinimumLevel.Override("Microsoft.AspNetCore.Mvc", LogEventLevel.Warning)
+        .MinimumLevel.Override("Microsoft.AspNetCore.Routing", LogEventLevel.Warning)
+        .MinimumLevel.Override("Microsoft.AspNetCore.Hosting", LogEventLevel.Warning)
         .Enrich.FromLogContext()
         .WriteTo.Console(theme: AnsiConsoleTheme.Code);
 
@@ -101,11 +105,19 @@ if (!app.Environment.IsDevelopment())
 }
 
 app.UseHttpsRedirection();
-app.UseSerilogRequestLogging();
 
 app.UseStaticFiles();
 app.UseAntiforgery();
 
+app.UseSerilogRequestLogging(options =>
+{
+    options.IncludeQueryInRequestPath = true;
+    options.EnrichDiagnosticContext = (context, httpContext) =>
+    {
+        context.Set("HttpRequestClientIP", httpContext.Connection.RemoteIpAddress);
+        context.Set("Headers", JsonSerializer.Serialize(httpContext.Request.Headers));
+    };
+});
 app.MapControllers();
 
 app.MapRazorComponents<App>()
