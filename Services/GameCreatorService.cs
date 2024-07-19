@@ -67,6 +67,7 @@ public class GameCreatorService
             {
                 Name = model.Name,
                 Questions = MapQuestionModelToQuestions(model),
+                WaitingImageId = model.WaitingImageId,
             };
 
             foreach (var file in files)
@@ -109,13 +110,25 @@ public class GameCreatorService
                 .SingleAsync(i => i.Identifier == existingTemplateIdentifier);
 
             existing.Name = model.Name;
+            if (model.WaitingImageId.HasValue)
+            {
+                existing.WaitingImageId = model.WaitingImageId;
+            }
+            else
+            {
+                existing.WaitingImageId = null;
+            }
 
             var choices = existing.Questions.SelectMany(i => i.Choices);
             db.RemoveRange(choices);
             db.RemoveRange(existing.Questions);
 
             // move newly created files
-            var filesIds = model.Questions.SelectMany(q => new[] { q.QuestionImageId, q.ResponseImageId }).Where(i => i.HasValue).Select(i => i!.Value)
+            var filesIds = model.Questions
+                .SelectMany(q => new[] { q.QuestionImageId, q.ResponseImageId })
+                .Concat(new[] { model.WaitingImageId })
+                .Where(i => i.HasValue)
+                .Select(i => i!.Value)
                 .ToArray();
             var files = await db.Files.Where(i => filesIds.Contains(i.Id)).ToArrayAsync();
 
@@ -127,9 +140,9 @@ public class GameCreatorService
                     file.GameTemplateId = existing.Id;
                 }
             }
-            
+
             existing.Questions = MapQuestionModelToQuestions(model);
-            
+
             return existing;
         });
     }

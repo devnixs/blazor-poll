@@ -8,6 +8,7 @@ public class NewGameModel
     public string Name { get; set; } = "";
 
     public List<QuestionModel> Questions { get; set; } = new List<QuestionModel>();
+    public Guid? WaitingImageId { get; set; }
 }
 
 public class QuestionModel

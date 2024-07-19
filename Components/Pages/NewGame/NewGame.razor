@@ -36,6 +36,11 @@
             <InputText type="text" class="form-control" @bind-Value="_model.Name" id="name" placeholder=""/>
             <ValidationMessage For="() => _model.Name"></ValidationMessage>
         </div>
+        <div class="mb-5">
+            <label class="form-label">Image facultative affichée avant le début du jeu</label>
+            <ImageUpload value="@_model.WaitingImageId" OnFileReady="(id) => _model.WaitingImageId = id"/>
+            <ValidationMessage For="() => _model.WaitingImageId"></ValidationMessage>
+        </div>
 
         <hr/>
 
@@ -274,9 +279,11 @@
             return;
         }
 
+        var waitingImageFile = template.Files.FirstOrDefault(i => template.WaitingImageId == i.Id);
         _model = new NewGameModel
         {
-            Name = template.Name
+            Name = template.Name,
+            WaitingImageId = waitingImageFile?.Id,
         };
 
         foreach (var question in template.Questions)

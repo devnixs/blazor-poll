@@ -1,4 +1,4 @@
-﻿# From .NET Core 3.0 you can use the command: `dotnet new gitignore` to generate a customizable .gitignore file
+# From .NET Core 3.0 you can use the command: `dotnet new gitignore` to generate a customizable .gitignore file
 
 *.swp
 *.*~
@@ -36,3 +36,4 @@ msbuild.wrn
 .idea
 
 .env
+UploadedFiles/

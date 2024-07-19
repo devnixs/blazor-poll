@@ -38,6 +38,7 @@ builder.Services.AddSerilog((services, lc) =>
         .MinimumLevel.Override("Microsoft.AspNetCore.Mvc", LogEventLevel.Warning)
         .MinimumLevel.Override("Microsoft.AspNetCore.Routing", LogEventLevel.Warning)
         .MinimumLevel.Override("Microsoft.AspNetCore.Hosting", LogEventLevel.Warning)
+        .MinimumLevel.Override("Microsoft.AspNetCore.StaticFiles", LogEventLevel.Warning)
         .Enrich.FromLogContext()
         .WriteTo.Console(theme: AnsiConsoleTheme.Code);
 
@@ -50,7 +51,7 @@ builder.Services.AddSerilog((services, lc) =>
         {
             HostnameOrAddress = graylogUrl,
             Port = 22201,
-            Facility = assemblyName?.Name
+            Facility = assemblyName?.Name,
         });
     }
 });
@@ -115,6 +116,8 @@ app.UseSerilogRequestLogging(options =>
     options.EnrichDiagnosticContext = (context, httpContext) =>
     {
         context.Set("HttpRequestClientIP", httpContext.Connection.RemoteIpAddress);
+        var xForwardedFor = httpContext.Request.Headers["X-Forwarded-For"];
+        context.Set("OriginalIpAddress", string.Join(";", xForwardedFor.Select(i => i ?? "")));
         context.Set("Headers", JsonSerializer.Serialize(httpContext.Request.Headers));
     };
 });

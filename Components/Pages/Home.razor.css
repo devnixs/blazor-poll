@@ -131,3 +131,11 @@
 .footer small{
     font-size: 11px;
 }
+
+.waiting-image-container{
+text-align: center;
+}
+
+.waiting-image{
+    max-width:100%;
+}

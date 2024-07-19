@@ -9,7 +9,9 @@ public class GameTemplate
     [Key]
     public int Id { get; set; }
     
+    [StringLength(256)]
     public string Identifier { get; set; }
+    public Guid? WaitingImageId { get; set; }
 
     public DateTimeOffset CreationDate { get; set; } = DateTimeOffset.UtcNow;
 

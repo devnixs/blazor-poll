@@ -35,7 +35,7 @@ else
                 </a>
             }
         </div>
-        
+
         @if (_isAdmin && CurrentGame?.Status != GameStatus.Completed)
         {
             <div class="text-end mb-1">
@@ -46,7 +46,7 @@ else
             </div>
         }
     }
-    
+
 </Microsoft.AspNetCore.Components.Sections.SectionContent>
 
 
@@ -61,18 +61,25 @@ else
             {
                 @if (CurrentGame?.Status == GameStatus.WaitingForPlayers)
                 {
-                   @if (!_isAdmin)
-                   {
-                       <h1 class="text-center">
-                           Le jeu va bientôt démarrer, merci de patienter!
-                       </h1>
-                   }
-                   else
-                   {
-                       <h1 class="text-center">
-                           Partagez ce QR Code avec vos joueurs
-                       </h1>
-                   }
+                    @if (!_isAdmin)
+                    {
+                        <h1 class="text-center">
+                            Le jeu va bientôt démarrer, merci de patienter!
+                        </h1>
+                    }
+                    else
+                    {
+                        <h1 class="text-center">
+                            Partagez ce QR Code avec vos joueurs
+                        </h1>
+                    }
+                    @if (CurrentGame.Template.WaitingImageId.HasValue)
+                    {
+                        <div class="waiting-image-container">
+                            <img class="waiting-image" src="/file/get/@CurrentGame.Template.WaitingImageId" alt="Waiting Image" />
+                        </div>
+                    }
+
                     <div class="qrcode-container">
                         @if (CurrentGame is not null)
                         {
@@ -80,14 +87,14 @@ else
                         }
                     </div>
                 }
-                
+
                 @if (CurrentGame?.Status == GameStatus.Completed)
                 {
                     <h1 class="text-center">
                         🎉
                     </h1>
                 }
-                
+
                 if (CurrentGame is null)
                 {
                     <h1 class="text-center">
@@ -100,11 +107,11 @@ else
                 <h1 class="text-center mb-3 question-title">
                     @CurrentGame.CurrentQuestion.Content
                 </h1>
-                
+
                 if (CurrentGame.CurrentQuestion.AskingQuestionImageId.HasValue)
                 {
                     <div class="image-container">
-                        <img class="image-details" src="/file/get/@CurrentGame.CurrentQuestion.AskingQuestionImageId" alt="Question Image" />
+                        <img class="image-details" src="/file/get/@CurrentGame.CurrentQuestion.AskingQuestionImageId" alt="Question Image"/>
                     </div>
                 }
 
@@ -142,7 +149,7 @@ else
                 if (CurrentGame.CurrentQuestion.PresentingAnswerImageId.HasValue)
                 {
                     <div class="image-container">
-                        <img class="image-details" src="/file/get/@CurrentGame.CurrentQuestion.PresentingAnswerImageId" alt="Question Image" />
+                        <img class="image-details" src="/file/get/@CurrentGame.CurrentQuestion.PresentingAnswerImageId" alt="Question Image"/>
                     </div>
                 }
 
@@ -202,28 +209,47 @@ else
                             {
                                 <span class="me-1">💯</span>
                             }
-                            else if (index == _allPlayers.Length -1 && _allPlayers.Length >= 1 && _allPlayers[0].Score > 300)
+                            else if (index == _allPlayers.Length - 1 && _allPlayers.Length >= 1 && _allPlayers[0].Score > 300)
                             {
                                 <span class="me-1">💩</span>
                             }
 
                             @p.Name.Substring(0, Math.Min(p.Name.Length, 15))
-                            
-                            @if (p.LastQuestionSuccess == true)
-                            {
-                                <span class="m-2">✅</span>
-                            }
+
                         </span>
 
                         @if (CurrentGame.Status is GameStatus.Completed or GameStatus.AskingQuestion or GameStatus.DisplayQuestionResult)
                         {
-                            <span class="badge bg-primary">@p.Score.ToString("### ### ##0")</span>
+                            <span>
+
+                                @if (p.LastQuestionSuccess == true)
+                                {
+                                    <span class="m-2">✅</span>
+                                }
+                                @if (p.HasAnswered == true)
+                                {
+                                    <span class="m-2">🕒</span>
+                                }
+
+                                <span class="badge bg-primary">@p.Score.ToString("### ### ##0")</span>
+                            </span>
                         }
                     </div>
                 }
             </div>
         }
     </div>
+
+
+    @if (_isAdmin && CurrentGame?.Status != GameStatus.Completed)
+    {
+        <div class="text-end mb-1 d-block d-sm-none mt-5">
+            <button class="btn btn-outline-success me-2" @onclick="Next">
+                Next
+                <i class="fa fa-arrow-right fa-fw"></i>
+            </button>
+        </div>
+    }
 </div>
 
 <div class="footer">
@@ -269,7 +295,7 @@ else
             NavigationManager.NavigateTo("/not-found");
             return;
         }
-        
+
         if (await HttpUtils.IsPreRendering())
         {
             Logger.LogInformation("Skipped: Prerendering");

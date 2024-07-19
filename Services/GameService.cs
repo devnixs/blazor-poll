@@ -43,6 +43,12 @@ public class GameService
             .Single(i => i.Id == questionChoiceId);
         
         var now = DateTimeOffset.UtcNow;
+
+        var player = game.Players.SingleOrDefault(i => i.Id == playerId);
+        if (player is not null)
+        {
+            player.HasAnswered = true;
+        }
         
         var answer = new Answer()
         {
@@ -162,6 +168,7 @@ public class GameService
         foreach (var player in players)
         {
             player.LastQuestionSuccess = false;
+            player.HasAnswered = false;
         }
 
         if (answers.Length == 0)
