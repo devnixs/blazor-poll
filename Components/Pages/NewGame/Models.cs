@@ -28,7 +28,7 @@ public class QuestionModel
         ResponseImageId = null,
         Choices =
         [
-            ChoiceModel.DefaultValid,
+            ChoiceModel.Default,
             ChoiceModel.Default,
             ChoiceModel.Default,
         ],

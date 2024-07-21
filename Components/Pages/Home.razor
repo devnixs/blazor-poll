@@ -73,10 +73,11 @@ else
                             Partagez ce QR Code avec vos joueurs
                         </h1>
                     }
+
                     @if (CurrentGame.Template.WaitingImageId.HasValue)
                     {
                         <div class="waiting-image-container">
-                            <img class="waiting-image" src="/file/get/@CurrentGame.Template.WaitingImageId" alt="Waiting Image" />
+                            <img class="waiting-image" src="/file/get/@CurrentGame.Template.WaitingImageId" alt="Waiting Image"/>
                         </div>
                     }
 
@@ -143,7 +144,7 @@ else
                 var validChoice = CurrentGame.CurrentQuestion.Choices.FirstOrDefault(i => i.IsValid);
 
                 <h1 class="text-center mb-3">
-                    @CurrentGame.CurrentQuestion.Content
+                    @CurrentGame.CurrentQuestion.Content 
                 </h1>
 
                 if (CurrentGame.CurrentQuestion.PresentingAnswerImageId.HasValue)
@@ -152,7 +153,6 @@ else
                         <img class="image-details" src="/file/get/@CurrentGame.CurrentQuestion.PresentingAnswerImageId" alt="Question Image"/>
                     </div>
                 }
-
                 if (_isAdmin)
                 {
                     <div class="question-container">
@@ -165,6 +165,17 @@ else
                                 class="question question-@index @(validChoice?.Id == choice.Id ? "valid" : "invalid")">
                                 <div class="question-inner">
                                     @choice.Content
+                                    @if (_allAnswers is not null)
+                                    {
+                                        foreach (var answer in _allAnswers.Where(i=>i.ChoiceId == choice.Id).Take(15))
+                                        {
+                                            var playerName = GetPlayer(answer.PlayerId)?.Name;
+                                            if (!string.IsNullOrEmpty(playerName))
+                                            {
+                                                <div class="question-answer-player">@(playerName.Substring(0, Math.Min(24, playerName.Length)))</div>
+                                            }
+                                        }
+                                    }
                                 </div>
                             </div>
                         }
@@ -176,6 +187,10 @@ else
                         <i class="fa fa-times fa-3x" aria-hidden="true"></i>
                         <div>La bonne réponse était </div>
                         <div class="fw-bold mt-1"> @(validChoice?.Content ?? "?")</div>
+                        @if (_answer is not null)
+                        {
+                            <small class="mt-1 question-small">Vous aviez répondu <strong>@(_answer?.Choice?.Content)</strong></small>
+                        }
                     </div>
                 }
                 else
@@ -183,6 +198,10 @@ else
                     <div class="answer-container answer-success bg-success">
                         <i class="fa fa-check fa-4x" aria-hidden="true"></i>
                         <div class="mt-2">Vous marquez @_answer.Score points</div>
+                        @if (_answer is not null)
+                        {
+                            <small class="mt-1 question-small">Vous aviez répondu <strong>@(_answer?.Choice?.Content)</strong></small>
+                        }
                     </div>
                 }
             }
@@ -261,8 +280,10 @@ else
 
 
     private Answer? _answer;
+    private Answer[] _allAnswers;
     private Player? _player;
     private Player[] _allPlayers = Array.Empty<Player>();
+    private Dictionary<Guid, Player> _playersDictionnary = new Dictionary<Guid, Player>();
     private int _answersCount;
 
     [Inject]
@@ -318,7 +339,9 @@ else
             _answer = CurrentGame.GetCurrentAnswer(_player.Id);
         }
 
+        _allAnswers = CurrentGame.Answers.ToArray();
         _allPlayers = CurrentGame.GetAllPlayers();
+        _playersDictionnary = _allPlayers.ToDictionary(i => i.Id);
 
         await base.OnInitializedAsync();
     }
@@ -372,8 +395,15 @@ else
             _player = CurrentGame.GetPlayer(_player.Id);
         }
 
+        _allAnswers = CurrentGame.Answers.ToArray();
         _allPlayers = CurrentGame.GetAllPlayers();
+        _playersDictionnary = _allPlayers.ToDictionary(i => i.Id);
         _answersCount = CurrentGame.GetAnswersCount();
+    }
+
+    private Player? GetPlayer(Guid id)
+    {
+        return _playersDictionnary.TryGetValue(id, out var value) ? value : null;
     }
 
     public override void Dispose()
