@@ -35,19 +35,19 @@
 
 }
 
-.question-0 {
+.question:nth-child(4n+0) {
     background-color: rgb(182, 215, 168);
 }
 
-.question-1 {
+.question:nth-child(4n+1) {
     background-color: rgb(201, 218, 248);
 }
 
-.question-2 {
+.question:nth-child(4n+2) {
     background-color: rgb(179 153 234);
 }
 
-.question-3 {
+.question:nth-child(4n+3) {
     background-color: rgb(255, 229, 153);
 }
 
@@ -138,4 +138,12 @@ text-align: center;
 
 .waiting-image{
     max-width:100%;
+}
+
+.question-small{
+    font-size: 10px;
+}
+
+.question-answer-player{
+    font-size: 10px;
 }

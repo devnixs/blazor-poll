@@ -11,7 +11,7 @@ public class GameService
     public GameService(
         GameStateAccessor gameStateAccessor,
         ILogger<GameService> logger
-        )
+    )
     {
         _gameStateAccessor = gameStateAccessor;
         _logger = logger;
@@ -31,7 +31,7 @@ public class GameService
             _logger.LogWarning("Question didn't have a start time, {game}, {currentQuestion}", game, game?.CurrentQuestion);
             return null;
         }
-        
+
         if (game.Status != GameStatus.AskingQuestion)
         {
             _logger.LogWarning("Bad state to select answer, {status}", game.Status);
@@ -41,7 +41,7 @@ public class GameService
 
         var questionChoice = game.CurrentQuestion.Choices
             .Single(i => i.Id == questionChoiceId);
-        
+
         var now = DateTimeOffset.UtcNow;
 
         var player = game.Players.SingleOrDefault(i => i.Id == playerId);
@@ -49,10 +49,11 @@ public class GameService
         {
             player.HasAnswered = true;
         }
-        
+
         var answer = new Answer()
         {
             ChoiceId = questionChoiceId,
+            Choice = questionChoice,
             PlayerId = playerId,
             QuestionId = questionChoice.QuestionId,
             AnswerTime = now - game.QuestionStartTime.Value,
@@ -64,7 +65,7 @@ public class GameService
 
         return answer;
     }
-    
+
     public void StartGame(Guid gameId)
     {
         var game = _gameStateAccessor.GetGame(gameId);
@@ -74,14 +75,14 @@ public class GameService
         }
 
         var players = game.Players;
-        players.ForEach(i=>i.Score = 0);
+        players.ForEach(i => i.Score = 0);
         game.SetState(GameStatus.AskingQuestion);
-        
-        
+
+
         var firstQuestion = game.Questions.OrderBy(i => i.Index).First();
         game.SetCurrentQuestion(firstQuestion);
     }
-    
+
     public Task<string?> ValidateGame(int templateId)
     {
         var template = new GameTemplate();
@@ -89,20 +90,22 @@ public class GameService
         {
             return Task.FromResult("Il faut au moins une question")!;
         }
-        
+
         // Ensure all questions are valid
         for (var i = 1; i <= template.Questions.ToArray().Length; i++)
         {
-            var question = template.Questions.ToArray()[i-1];
+            var question = template.Questions.ToArray()[i - 1];
             if (question.Choices.Count > 4)
             {
                 return Task.FromResult($"Question {i} doit avoir au moins une réponse")!;
             }
+
             if (question.Choices.Count > 4)
             {
                 return Task.FromResult($"Question {i} doit avoir au maximum 4 réponses")!;
             }
-            if (!question.Choices.Any(c=>c.IsValid))
+
+            if (!question.Choices.Any(c => c.IsValid))
             {
                 return Task.FromResult($"Question {i} doit avoir une réponse valide")!;
             }
@@ -110,7 +113,7 @@ public class GameService
 
         return Task.FromResult<string?>(null);
     }
-    
+
     public void ValidateQuestion(Guid gameId)
     {
         var game = _gameStateAccessor.GetGame(gameId);
@@ -118,17 +121,17 @@ public class GameService
         {
             return;
         }
-        
+
         if (game.Status != GameStatus.AskingQuestion)
         {
             return;
         }
-        
+
         game.SetState(GameStatus.DisplayQuestionResult);
         ComputeScores(game);
         game.OnStateChanged();
     }
-    
+
     public void MoveToNextQuestion(Guid gameId)
     {
         var game = _gameStateAccessor.GetGame(gameId);
@@ -136,6 +139,12 @@ public class GameService
         {
             _logger.LogWarning("Could not find game {}", gameId);
             return;
+        }
+
+        foreach (var player in game.Players)
+        {
+            player.LastQuestionSuccess = false;
+            player.HasAnswered = false;
         }
 
         var current = game.CurrentQuestion;
@@ -159,7 +168,7 @@ public class GameService
             }
         }
     }
-    
+
     public void ComputeScores(GameState game)
     {
         var answers = game.Answers.ToArray();
@@ -175,16 +184,28 @@ public class GameService
         {
             return;
         }
-        
-        var maxTime = answers.Max(i => i.AnswerTime);
-        var minTime = answers.Min(i => i.AnswerTime);
-        var span = maxTime - minTime;
-        var totalSeconds = span.TotalSeconds >= 1 ? span.TotalSeconds : 1;
+
+        var validAnswers = answers.Where(i => i.IsValid).OrderBy(i => i.AnswerTime).ToArray();
         foreach (var answer in answers)
         {
             if (answer.IsValid)
             {
-                answer.Score = (int)Math.Floor(100d + 20d * (1d - (answer.AnswerTime.TotalSeconds - minTime.TotalSeconds)  / totalSeconds));
+                var index = validAnswers.FindIndex(i => i == answer);
+                int bonus;
+                if (index is null)
+                {
+                    bonus = 0;
+                }
+                else if (validAnswers.Length == 1)
+                {
+                    bonus = 20;
+                }   
+                else
+                {
+                    bonus = (int)Math.Floor(20 * (1 - ((double)index.Value / (validAnswers.Length - 1))));
+                }
+
+                answer.Score = 100 + bonus;
                 var player = players.SingleOrDefault(i => i.Id == answer.PlayerId);
                 if (player is not null)
                 {
@@ -203,7 +224,7 @@ public class GameService
             }
         }
     }
-    
+
     private void FinishGame(Guid gameId)
     {
         _logger.LogInformation("Game {gameId} finished", gameId);
