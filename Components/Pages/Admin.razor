@@ -3,7 +3,10 @@
 @using Poll.DAL.Services
 @using Poll.DAL
 @using Microsoft.EntityFrameworkCore
+@using Poll.Services
 @inject DatabaseReadContextProvider DatabaseReadContextProvider
+@inject DatabaseWriteContextProvider DatabaseWriteContextProvider
+@inject GameTemplateRepository GameTemplateRepository
 
 <PageTitle>Admin</PageTitle>
 
@@ -25,20 +28,50 @@
                         <p class="card-text">Créé le @template.CreationDate.ToString("dd/MM/yyy")</p>
                         <a class="btn btn-primary" href="/template/@template.Identifier">Go</a>
                         <a href="/edit-game/@template.Identifier" class="btn btn-secondary"><i class="fa fa-pencil fa-fw me-1"></i> Edit</a>
+                        <a class="btn btn-danger" onclick="@(() => DeleteGame(template.Id))">
+                            @if (_deleteConfirmation == template.Id)
+                            {
+                                <span>Confirmer?</span>
+                            }
+                            else
+                            {
+                                <span>Supprimer</span>
+                            }
+                        </a>
                     </div>
                 </div>
-            } 
+            }
         }
-     
+
     </div>
 </div>
 
 
 @code {
     private GameTemplate[]? _templates;
+    private int? _deleteConfirmation = null;
+
     protected override async Task OnInitializedAsync()
     {
         _templates = await DatabaseReadContextProvider.Read<PollContext, GameTemplate[]>(async db => await db.GameTemplates.ToArrayAsync());
         await base.OnInitializedAsync();
+    }
+
+    private async Task DeleteGame(int id)
+    {
+        if (_deleteConfirmation == id)
+        {
+            await DatabaseWriteContextProvider.Write<GameTemplateRepository, int>(async repo =>
+            {
+                await repo.DeleteGame(id);
+                return 0;
+            });
+            _templates = await DatabaseReadContextProvider.Read<PollContext, GameTemplate[]>(async db => await db.GameTemplates.ToArrayAsync());
+        }
+        else
+        {
+            _deleteConfirmation = id;
+        }
+        StateHasChanged();
     }
 }

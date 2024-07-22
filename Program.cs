@@ -69,6 +69,7 @@ builder.Services.AddLogging();
 builder.Services.AddScoped<FileManager>();
 builder.Services.AddScoped<PlayerService>();
 builder.Services.AddScoped<GameCreatorService>();
+builder.Services.AddTransient<GameTemplateRepository>();
 builder.Services.AddSingleton<GameStateAccessor>();
 builder.Services.AddHostedService(i => i.GetRequiredService<GameStateAccessor>());
 builder.Services.AddTransient<HttpUtils>();
