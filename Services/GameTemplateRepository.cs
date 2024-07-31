@@ -8,9 +8,16 @@ public class GameTemplateRepository(PollContext db, ILogger<GameTemplateReposito
     public async Task DeleteGame(int id)
     {
         var files = await db.Files.Where(i => i.GameTemplateId == id).ToArrayAsync();
+        var questions = await db.Questions.Include(i=>i.Choices).Where(i => i.GameTemplateId == id).ToArrayAsync();
         var template = await db.GameTemplates.SingleAsync(i => i.Id == id);
         db.Remove(template);
 
+        foreach (var question in questions)
+        {
+            db.Remove(question);
+            db.RemoveRange(question.Choices);
+        }
+        
         foreach (var file in files)
         {
             db.Remove(file);

@@ -49,7 +49,7 @@
             var question = _model.Questions[questionIndex];
             var i1 = questionIndex;
 
-            <div class="border border-1 rounded-1 p-3 mb-3">
+            <div class="border border-1 rounded-1 p-3 mb-3" @key="question.Identifier">
                 <div class="mb-3">
                     <label for="@($"questionTitle-{i1}")" class="form-label">Titre de la question #@(i1 + 1)</label>
                     <InputText type="text" @bind-Value="question.Name" id="@($"questionTitle-{i1}")" class="form-control"/>

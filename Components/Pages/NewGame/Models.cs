@@ -13,6 +13,8 @@ public class NewGameModel
 
 public class QuestionModel
 {
+    public Guid Identifier { get; set; } = Guid.NewGuid();
+    
     [Required]
     public string Name { get; set; } = "";
 

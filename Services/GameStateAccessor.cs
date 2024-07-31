@@ -32,7 +32,7 @@ public class GameStateAccessor : BackgroundService
             var games = _games.Values;
             foreach (var g in games)
             {
-                if (g.CreationDate < DateTimeOffset.UtcNow - TimeSpan.FromDays(3))
+                if (g.CreationDate < DateTimeOffset.UtcNow - TimeSpan.FromDays(200))
                 {
                     _logger1.LogInformation("Deleting game {}", g.Id);
                     g.Dispose();
