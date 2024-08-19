@@ -27,6 +27,19 @@ public class HttpUtils
             return true;
         }
     }
+    
+    public async Task<string?> Prompt(string text, string defaultValue)
+    {
+        try
+        {
+            var feedback = await _runtime.InvokeAsync<string>("prompt", text, defaultValue);
+            return feedback;
+        }
+        catch (InvalidOperationException)
+        {
+            return null;
+        }
+    }
 
     public string GetBaseUrl()
     {

@@ -1,17 +1,25 @@
-﻿
-<div class="page">
-    <main>
-        <div class="top-row px-4">
-            <Microsoft.AspNetCore.Components.Sections.SectionOutlet SectionName="top-bar" />
-        </div>
+﻿@using Poll.Services
 
-        <article class="content px-4">
-            @Body
-        </article>
+@if (IsPrerendering)
+{
+    <div class="loading-screen">Chargement...</div>
+}
+else
+{
+    <div class="page">
+        <main>
+            <div class="top-row px-4">
+                <Microsoft.AspNetCore.Components.Sections.SectionOutlet SectionName="top-bar" />
+            </div>
+
+            <article class="content px-4">
+                @Body
+            </article>
         
-        <Poll.Components.Components.Latency />
-    </main>
-</div>
+            <Poll.Components.Components.Latency />
+        </main>
+    </div>
+}
 
 <div id="blazor-error-ui">
     Une erreur est survenue.
@@ -23,5 +31,21 @@
 @code {
     [Parameter]
     public RenderFragment? Body { get; set; }
+
+    public bool IsPrerendering { get; set; }
     
+    [Inject]
+    public HttpUtils? HttpUtils { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (HttpUtils is null)
+        {
+            return;
+        }
+        
+        IsPrerendering = await HttpUtils.IsPreRendering();
+        await base.OnInitializedAsync();
+    }
+
 }

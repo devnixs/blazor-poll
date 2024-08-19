@@ -112,7 +112,10 @@ public class PlayerService
             }
             else
             {
-                player.Name = name;
+                if (!player.NameIsLocked)
+                {
+                    player.Name = name;
+                }
             }
         }
 

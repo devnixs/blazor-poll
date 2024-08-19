@@ -1,6 +1,7 @@
 ﻿@page "/create-player/{GameId}"
 @using Poll.DAL.Entities
 @using Poll.Services
+@using System.Text.RegularExpressions
 
 @inject ILogger<CreatePlayer> Logger
 @inject HttpUtils httpUtils
@@ -9,20 +10,28 @@
 
 <PageTitle>Home</PageTitle>
 
-<EditForm class="row g-3" Model="@Model" OnSubmit="@Submit">
-    <div class="mb-3">
-        <label for="firstname" class="form-label">Prénom:</label>
-        <InputText type="text" class="form-control" maxlength="24" @bind-Value="Model!.Name" id="firstname" placeholder=""/>
-    </div>
-    <div class="col-auto">
-        <button type="submit" class="btn btn-primary mb-3">OK</button>
-    </div>
-</EditForm>
+@if (_editContext is not null)
+{
+    <EditForm class="row g-3" EditContext="@_editContext" Model="@(null)" OnValidSubmit="@OnValidSubmit">
+        <div class="mb-3">
+            <label for="firstname" class="form-label">Prénom:</label>
+            <InputText type="text" class="form-control" maxlength="24" @bind-Value="Model!.Name" id="firstname" placeholder=""/>
+            <ValidationMessage For="() => Model.Name"></ValidationMessage>
+        </div>
+        <div class="col-auto">
+            <button type="submit" class="btn btn-primary mb-3">OK</button>
+        </div>
+        <FluentValidationValidator/>
+    </EditForm>
+}
+
 
 @code {
 
     [Parameter]
     public string? GameId { get; set; }
+    
+    public string? ErrorMessage { get; set; }
 
     public Guid? GameIdGuid { get; set; }
 
@@ -30,6 +39,8 @@
     {
         Name = "",
     };
+
+    private EditContext? _editContext { get; set; }
 
     protected override async Task OnInitializedAsync()
     {
@@ -56,17 +67,17 @@
         {
             Model.Name = player.Name;
         }
+        
+        _editContext = new(Model);
     }
 
-    private async Task Submit()
+    public async Task OnValidSubmit()
     {
-        if (string.IsNullOrEmpty(Model?.Name) || GameIdGuid is null)
-        {
-            return;
-        }
-
-        await PlayerService.SetPlayerName(GameIdGuid.Value, Model.Name);
+        var firstLetter = Model.Name[0..1];
+        var rest = Model.Name[1..];
+        var updated = firstLetter.ToUpperInvariant() + rest.ToLowerInvariant();
+        
+        await PlayerService.SetPlayerName(GameIdGuid.Value, updated);
         NavigationManager.NavigateTo("/game/" + GameIdGuid.Value);
     }
-
 }

@@ -94,3 +94,8 @@ main {
         right: 0.75rem;
         top: 0.5rem;
     }
+
+.loading-screen{
+    text-align: center;
+    margin-top: 30vh;
+}

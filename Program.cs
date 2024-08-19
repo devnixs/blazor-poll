@@ -6,8 +6,10 @@ using FluentValidation;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Storage;
 using Poll.Components;
+using Poll.Components.Pages.CreatePlayer;
 using Poll.Components.Pages.NewGame;
 using Poll.DAL;
+using Poll.DAL.Entities;
 using Poll.DAL.Services;
 using Poll.Middlewares;
 using Poll.Services;
@@ -79,6 +81,7 @@ builder.Services.AddTransient<GameService>();
 builder.Services.AddTransient<Initializer>();
 builder.Services.AddScoped<TransactionContext>();
 builder.Services.AddScoped<IValidator<NewGameModel>, NewGameValidator>();
+builder.Services.AddScoped<IValidator<Player>, CreatePlayerValidator>();
 
 builder.Services.AddTransient<IInitializer, DbSeeder>();
 

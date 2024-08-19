@@ -25,14 +25,28 @@ else
 <Microsoft.AspNetCore.Components.Sections.SectionContent SectionName="top-bar">
     @if (CurrentGame is not null)
     {
-        <span>@CurrentGame.Template.Name</span>
+        <span>
+            @CurrentGame.Template.Name
+            @if (CurrentGame.CurrentQuestion is not null)
+            {
+                <span class="ms-2"> @(CurrentGame.CurrentQuestion.Index + 1)/@(CurrentGame.Questions.Length)</span>
+            }
+        </span>
 
         <div class="text-right">
             @if (!string.IsNullOrEmpty(_player?.Name))
             {
-                <a href="/create-player/@CurrentGame.Id">
-                    <strong>@_player?.Name</strong> <i class="fa fa-pencil ml-3"></i>
-                </a>
+                if (_player?.NameIsLocked == false)
+                {
+                    <a href="/create-player/@CurrentGame.Id">
+                        <strong>@_player?.Name</strong> 
+                            <i class="fa fa-pencil ms-2"></i>
+                    </a>
+                }
+                else
+                {
+                    <strong>@_player?.Name</strong> 
+                }
             }
         </div>
 
@@ -214,7 +228,7 @@ else
                 @for (var index = 0; index < _allPlayers.Length; index++)
                 {
                     var p = _allPlayers[index];
-                    <div class="score-row @(p.Id == _player?.Id ? "fw-bold" : "")">
+                    <div class="score-row @(p.Id == _player?.Id ? "fw-bold" : "")" @onclick="@(()=>OnPlayerClicked(p))">
                         <span class="player-names">
                             @if (index == 0 && p.Score > 100)
                             {
@@ -233,7 +247,7 @@ else
                                 <span class="me-1">💩</span>
                             }
 
-                            @p.Name.Substring(0, Math.Min(p.Name.Length, 15))
+                            @p.Name.Substring(0, Math.Min(p.Name.Length, 24))
 
                         </span>
 
@@ -302,6 +316,19 @@ else
         CurrentGame?.PlayerHeartBeat(_player);
     }
 
+    protected async Task OnPlayerClicked(Player player)
+    {
+        if (_isAdmin)
+        {
+            var result = await HttpUtils.Prompt("Mise à jour du prénom", player.Name);
+            if (!string.IsNullOrEmpty(result))
+            {
+                player.Name = result;
+                player.NameIsLocked = true;
+            }
+        }
+    }
+    
     protected override async Task OnInitializedAsync()
     {
         Logger.LogInformation("GameId : {GameId}", GameId);
