@@ -37,3 +37,7 @@ msbuild.wrn
 
 .env
 UploadedFiles/
+
+
+deploy.ps1
+
