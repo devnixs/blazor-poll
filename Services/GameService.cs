@@ -22,13 +22,16 @@ public class GameService
         var game = _gameStateAccessor.GetGame(gameId);
         if (game?.CurrentQuestion is null)
         {
-            _logger.LogWarning("Tried to selected answer but either game or question is undefined, {game}, {currentQuestion}", game, game?.CurrentQuestion);
+            _logger.LogWarning(
+                "Tried to selected answer but either game or question is undefined, {game}, {currentQuestion}", game,
+                game?.CurrentQuestion);
             return null;
         }
 
         if (!game.QuestionStartTime.HasValue)
         {
-            _logger.LogWarning("Question didn't have a start time, {game}, {currentQuestion}", game, game?.CurrentQuestion);
+            _logger.LogWarning("Question didn't have a start time, {game}, {currentQuestion}", game,
+                game?.CurrentQuestion);
             return null;
         }
 
@@ -186,6 +189,9 @@ public class GameService
         }
 
         var validAnswers = answers.Where(i => i.IsValid).OrderBy(i => i.AnswerTime).ToArray();
+
+        var winnerPoolBonus = game.Players.Count() * 6;
+        var winnerPoolValuePerPlayer = (int) Math.Round((decimal) winnerPoolBonus / validAnswers.Length);
         foreach (var answer in answers)
         {
             if (answer.IsValid)
@@ -199,13 +205,20 @@ public class GameService
                 else if (validAnswers.Length == 1)
                 {
                     bonus = 20;
-                }   
+                }
                 else
                 {
-                    bonus = (int)Math.Floor(20 * (1 - ((double)index.Value / (validAnswers.Length - 1))));
+                    bonus = (int) Math.Floor(20 * (1 - ((double) index.Value / (validAnswers.Length - 1))));
                 }
 
                 answer.Score = 100 + bonus;
+
+                if (answer.IsValid)
+                {
+                    // Add a bonus shared across all the winners, to reward answers when few people won.
+                    answer.Score += winnerPoolValuePerPlayer;
+                }
+                
                 var player = players.SingleOrDefault(i => i.Id == answer.PlayerId);
                 if (player is not null)
                 {
