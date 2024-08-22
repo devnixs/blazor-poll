@@ -191,7 +191,7 @@ public class GameService
         var validAnswers = answers.Where(i => i.IsValid).OrderBy(i => i.AnswerTime).ToArray();
 
         var winnerPoolBonus = game.Players.Count() * 6;
-        var winnerPoolValuePerPlayer = (int) Math.Round((decimal) winnerPoolBonus / validAnswers.Length);
+        var winnerPoolValuePerPlayer = validAnswers.Length > 0 ? (int) Math.Round((decimal) winnerPoolBonus / validAnswers.Length) : 0;
         foreach (var answer in answers)
         {
             if (answer.IsValid)

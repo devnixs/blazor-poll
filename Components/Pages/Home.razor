@@ -31,6 +31,10 @@ else
             {
                 <span class="ms-2"> @(CurrentGame.CurrentQuestion.Index + 1)/@(CurrentGame.Questions.Length)</span>
             }
+            @if (_isAdmin)
+            {
+                <span class="ms-2">[@_allPlayers.Length]</span>
+            }
         </span>
 
         <div class="text-right">
@@ -228,7 +232,7 @@ else
                 @for (var index = 0; index < _allPlayers.Length; index++)
                 {
                     var p = _allPlayers[index];
-                    <div class="score-row @(p.Id == _player?.Id ? "fw-bold" : "")" @onclick="@(()=>OnPlayerClicked(p))">
+                    <div class="score-row @(p.Id == _player?.Id ? "fw-bold" : "")" @onclick="@(() => OnPlayerClicked(p))">
                         <span class="player-names">
                             @if (index == 0 && p.Score > 100)
                             {
