@@ -14,6 +14,7 @@ public class NewGameModel
 public class QuestionModel
 {
     public Guid Identifier { get; set; } = Guid.NewGuid();
+    public string HtmlIdentifier { get; set; } = "item" + Random.Shared.NextInt64();
     
     [Required]
     public string Name { get; set; } = "";

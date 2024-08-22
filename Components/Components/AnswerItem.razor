@@ -1,0 +1,51 @@
+﻿<div
+    @onclick="OnSelectChoice"
+    id="@_identifier"
+    class="question question-@Index @(IsValid == true ? "valid" : IsValid == false ? "invalid" : "") @(IsSelected == true ? "selected" : IsSelected == false ? "not-selected" : "")">
+    <div class="question-inner">
+        @Content
+        @if (AnsweredPlayers is not null)
+        {
+            foreach (var answeredPlayer in AnsweredPlayers)
+            {
+                <div class="question-answer-player">@answeredPlayer</div>
+            }
+        }
+    </div>
+</div>
+
+@code{
+    private string _identifier = "item" + Random.Shared.NextInt64().ToString();
+
+    [Parameter]
+    public bool? IsValid { get; set; }
+
+    [Parameter]
+    public bool? IsSelected { get; set; }
+
+    [Parameter]
+    public string? Content { get; set; }
+
+    [Parameter]
+    public int Index { get; set; }
+
+    [Parameter]
+    public Action? OnSelectChoice { get; set; } = () => { };
+
+    [Parameter]
+    public string[]? AnsweredPlayers { get; set; }
+
+    [Inject]
+    public IJSRuntime Runtime { get; set; }
+
+    protected override async Task OnAfterRenderAsync(bool isFirstRender)
+    {
+        if (!isFirstRender)
+        {
+            return;
+        }
+
+        await Runtime.InvokeVoidAsync("initOptimisticRendering", "#" + _identifier);
+    }
+
+}

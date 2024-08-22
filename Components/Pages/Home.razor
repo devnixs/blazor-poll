@@ -138,14 +138,22 @@ else
                     @for (var index = 0; index < CurrentGame.CurrentQuestion.Choices.ToArray().Length; index++)
                     {
                         var choice = CurrentGame.CurrentQuestion.Choices.ToArray()[index];
-                        <div
-                            @onclick="() => OnSelectChoice(choice.Id)"
-                            @key="choice.Id"
-                            class="question question-@index @(_answer != null ? (_answer.ChoiceId == choice.Id ? "selected" : "not-selected") : "")">
-                            <div class="question-inner">
-                                @choice.Content
-                            </div>
-                        </div>
+                        @* <div *@
+                        @*     @onclick="() => OnSelectChoice(choice.Id)" *@
+                        @*     @key="choice.Id" *@
+                        @*     class="question question-@index @(_answer != null ? (_answer.ChoiceId == choice.Id ? "selected" : "not-selected") : "")"> *@
+                        @*     <div class="question-inner"> *@
+                        @*         @choice.Content *@
+                        @*     </div> *@
+                        @* </div> *@
+                        @* *@
+                        <AnswerItem
+                            OnSelectChoice="() => OnSelectChoice(choice.Id)"
+                            @key="@choice.Id"
+                            Content="@choice.Content"
+                            Index="index"
+                            IsSelected="@(_answer != null ? (_answer.ChoiceId == choice.Id) : null)"
+                        />
                     }
                 </div>
                 @if (_allPlayers.Length >= 2)
@@ -177,25 +185,18 @@ else
                         @for (var index = 0; index < CurrentGame.CurrentQuestion.Choices.ToArray().Length; index++)
                         {
                             var choice = CurrentGame.CurrentQuestion.Choices.ToArray()[index];
-                            <div
-                                @onclick="() => OnSelectChoice(choice.Id)"
-                                @key="choice.Id"
-                                class="question question-@index @(validChoice?.Id == choice.Id ? "valid" : "invalid")">
-                                <div class="question-inner">
-                                    @choice.Content
-                                    @if (_allAnswers is not null)
-                                    {
-                                        foreach (var answer in _allAnswers.Where(i=>i.ChoiceId == choice.Id).Take(15))
-                                        {
-                                            var playerName = GetPlayer(answer.PlayerId)?.Name;
-                                            if (!string.IsNullOrEmpty(playerName))
-                                            {
-                                                <div class="question-answer-player">@(playerName.Substring(0, Math.Min(24, playerName.Length)))</div>
-                                            }
-                                        }
-                                    }
-                                </div>
-                            </div>
+                            <AnswerItem
+                                @key="@choice.Id"
+                                IsValid="@(validChoice?.Id == choice.Id)"
+                                Content="@choice.Content"
+                                Index="index"
+                                IsSelected="false"
+                                AnsweredPlayers="@(_allAnswers?
+                                    .Where(i=>i.ChoiceId == choice.Id)
+                                    .Take(15)
+                                    .Select(i=> GetPlayer(i.PlayerId)?.Name)
+                                    .ToArray())"
+                                />
                         }
                     </div>
                 }

@@ -14,6 +14,7 @@
 @inject ILogger<NewGame> Logger;
 @inject GameCreatorService GameCreatorService;
 @inject HttpUtils HttpUtils;
+@inject IJSRuntime JsRuntime;
 @implements IDisposable;
 @implements IAsyncDisposable;
 
@@ -49,7 +50,7 @@
             var question = _model.Questions[questionIndex];
             var i1 = questionIndex;
 
-            <div class="border border-1 rounded-1 p-3 mb-3" @key="question.Identifier">
+            <div class="border border-1 rounded-1 p-3 mb-3" @key="question.Identifier" id="@question.HtmlIdentifier">
                 <div class="mb-3">
                     <label for="@($"questionTitle-{i1}")" class="form-label">Titre de la question #@(i1 + 1)</label>
                     <InputText type="text" @bind-Value="question.Name" id="@($"questionTitle-{i1}")" class="form-control"/>
@@ -99,8 +100,8 @@
                     <button type="button" @onclick="() => AddChoice(i1)" class="btn btn-secondary text-white"><i class="fa fa-plus"></i> Ajouter un choix</button>
                 </div>
 
-
                 <button type="button" disabled="@(_model.Questions.Count == 1)" class="btn btn-link mt-3 p-0" @onclick="() => DeleteQuestion(i1)">Supprimer cette question</button>
+                <button type="button" class="btn btn-link mt-3 p-0" @onclick="() => AddQuestionHere(i1)">Ajouter une question avant celle là</button>
             </div>
         }
         <div class="">
@@ -202,6 +203,13 @@
     private void AddQuestion()
     {
         _model.Questions.Add(QuestionModel.Default);
+    }
+    
+    private void AddQuestionHere(int index)
+    {
+        var question = QuestionModel.Default;
+        _model.Questions.Insert(index, question);
+        JsRuntime.InvokeVoidAsync("scrollItemIntoView", "#"+ question.HtmlIdentifier);
     }
 
     private void DeleteChoice(int questionIndex, int choiceIndex)

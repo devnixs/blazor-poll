@@ -65,7 +65,7 @@ public class PlayerService
 
     public async Task<bool> IsAdmin(Guid gameId)
     {
-        return await _localStorage.ContainKeyAsync(AdminKey + gameId);
+        return await _localStorage.ContainKeyAsync(AdminKey + gameId) || await _localStorage.ContainKeyAsync(AdminKey);
     }
     
     public async Task SetAdmin(Guid gameId)

@@ -29,10 +29,12 @@
 <body>
 <Routes @rendermode="InteractiveServer"/>
 <script src="_framework/blazor.web.js"></script>
+<script src="main.js"></script>
 
 <script>
-          window.jsMethod = () => {};
-        </script>
+  window.jsMethod = () => {};
+  initOptimisticRendering();
+</script>
 
 @if (!Env.IsDevelopment())
 {
