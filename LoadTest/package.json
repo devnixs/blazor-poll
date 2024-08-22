@@ -4,8 +4,9 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
-    "start": "DEBUG=puppeteer:* && tsc && node dist/index.js"
+    "test": "pm2 start dist/index.js -i 10 --name=loadtest",
+    "start": "DEBUG=puppeteer:* && tsc && node dist/index.js",
+    "build": "tsc"
   },
   "author": "",
   "license": "ISC",
