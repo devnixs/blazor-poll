@@ -190,7 +190,6 @@ else
                                 IsValid="@(validChoice?.Id == choice.Id)"
                                 Content="@choice.Content"
                                 Index="index"
-                                IsSelected="false"
                                 AnsweredPlayers="@(_allAnswers?
                                     .Where(i=>i.ChoiceId == choice.Id)
                                     .Take(15)

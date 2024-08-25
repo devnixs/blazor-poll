@@ -100,8 +100,28 @@
                     <button type="button" @onclick="() => AddChoice(i1)" class="btn btn-secondary text-white"><i class="fa fa-plus"></i> Ajouter un choix</button>
                 </div>
 
-                <button type="button" disabled="@(_model.Questions.Count == 1)" class="btn btn-link mt-3 p-0" @onclick="() => DeleteQuestion(i1)">Supprimer cette question</button>
-                <button type="button" class="btn btn-link mt-3 p-0" @onclick="() => AddQuestionHere(i1)">Ajouter une question avant celle là</button>
+                <button type="button" disabled="@(_model.Questions.Count == 1)" class="btn btn-link mt-3 p-0 mb-2" @onclick="() => DeleteQuestion(i1)">
+                    <i class="fa fa-trash ms-2"></i>
+                    Supprimer cette question
+                </button>
+                <button type="button" class="btn btn-link mt-3 p-0 mb-2" @onclick="() => AddQuestionHere(i1)">
+                    <i class="fa fa-plus ms-2"></i>
+                    Ajouter une question avant celle là
+                </button>
+                @if (i1 > 0)
+                {
+                    <button type="button" class="btn btn-link mt-3 p-0 mb-2" @onclick="() => MoveUp(i1)">
+                        <i class="fa fa-arrow-up ms-2"></i>
+                        Déplacer vers le haut
+                    </button>
+                }
+                @if (i1 < _model.Questions.Count - 1)
+                {
+                    <button type="button" class="btn btn-link mt-3 p-0 mb-2" @onclick="() => MoveDown(i1)">
+                        <i class="fa fa-arrow-down ms-2"></i>
+                        Déplacer vers le bas
+                    </button>
+                }
             </div>
         }
         <div class="">
@@ -204,12 +224,48 @@
     {
         _model.Questions.Add(QuestionModel.Default);
     }
-    
+
     private void AddQuestionHere(int index)
     {
         var question = QuestionModel.Default;
         _model.Questions.Insert(index, question);
-        JsRuntime.InvokeVoidAsync("scrollItemIntoView", "#"+ question.HtmlIdentifier);
+        JsRuntime.InvokeVoidAsync("scrollItemIntoView", "#" + question.HtmlIdentifier);
+    }
+
+    private void MoveUp(int index)
+    {
+        if (index <= 0)
+        {
+            return;
+        }
+
+        if (_model.Questions.Count < index)
+        {
+            return;
+        }
+
+        var source = _model.Questions[index];
+        var destination = _model.Questions[index - 1];
+        _model.Questions[index] = destination;
+        _model.Questions[index - 1] = source;
+    }
+
+    private void MoveDown(int index)
+    {
+        if (index < 0)
+        {
+            return;
+        }
+
+        if (_model.Questions.Count - 1 < index)
+        {
+            return;
+        }
+
+        var source = _model.Questions[index];
+        var destination = _model.Questions[index + 1];
+        _model.Questions[index] = destination;
+        _model.Questions[index + 1] = source;
     }
 
     private void DeleteChoice(int questionIndex, int choiceIndex)

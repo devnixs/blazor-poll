@@ -21,7 +21,9 @@ async function run() {
   const page = await browser.newPage();
   page.setDefaultNavigationTimeout(5 * 60 * 1000);
   page.setDefaultTimeout(5 * 60 * 1000);
-  await page.goto("https://poll.w.thera-engineering.com/game/7ebb170d-31e5-43e8-b663-5603230ebab1");
+  await page.goto(
+    "https://poll.w.thera-engineering.com/game/9098419f-5ac4-47e5-9480-a1f247ec8223"
+  );
 
   await page.waitForSelector("#firstname");
 
@@ -52,12 +54,15 @@ async function run() {
       await selected.click();
 
       console.log("Waiting for answer success or failure");
-      const found = await page.waitForSelector(".answer-failure,.answer-success", { timeout: 0 });
+      const found = await page.waitForSelector(
+        ".answer-failure,.answer-success",
+        { timeout: 0 }
+      );
       const propertyClass = await found?.getProperty("className");
       console.log("Element: ", await propertyClass?.jsonValue());
     } catch (e) {
       console.error(e);
-      console.log('Continuing');
+      console.log("Continuing");
     }
   }
 
