@@ -12,14 +12,14 @@
 
 @if (_editContext is not null)
 {
-    <EditForm class="row g-3" EditContext="@_editContext" Model="@(null)" OnValidSubmit="@OnValidSubmit">
+    <EditForm class="row g-3" EditContext="@_editContext" Model="@(null)">
         <div class="mb-3">
             <label for="firstname" class="form-label">Prénom:</label>
             <InputText type="text" class="form-control" maxlength="24" @bind-Value="Model!.Name" id="firstname" placeholder=""/>
             <ValidationMessage For="() => Model.Name"></ValidationMessage>
         </div>
         <div class="col-auto">
-            <button type="submit" class="btn btn-primary mb-3">OK</button>
+            <button type="button" @onclick="@Submit" class="btn btn-primary mb-3">OK</button>
         </div>
         <FluentValidationValidator/>
     </EditForm>
@@ -71,6 +71,23 @@
         _editContext = new(Model);
     }
 
+    private async Task Submit()
+    {
+        await Task.Delay(100);
+        
+        if (_editContext is null)
+        {
+            return;
+        }
+        _editContext.Validate();
+        if (_editContext.GetValidationMessages().Any())
+        {
+            return;
+        }
+
+        await OnValidSubmit();
+    }
+    
     public async Task OnValidSubmit()
     {
         var firstLetter = Model.Name[0..1];
