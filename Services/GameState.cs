@@ -43,6 +43,8 @@ public class GameState : IDisposable
     public DateTimeOffset? QuestionStartTime { get; private set; }
     public Guid Id { get; private set; }
     private int GameTemplateId { get; set; }
+    public int? QuestionDelaySeconds { get; set; }
+    public decimal QuestionCurrentProgress { get; set; }
 
     public GameState(
         Guid id,
@@ -219,6 +221,7 @@ public class GameState : IDisposable
     {
         CurrentQuestion = question;
         QuestionStartTime = DateTimeOffset.UtcNow;
+        QuestionCurrentProgress = 0;
         lock (_answerLocker)
         {
             _answers.Clear();
@@ -258,5 +261,21 @@ public class GameState : IDisposable
                 handlers();
             }
         }
+    }
+
+    public void Tick()
+    {
+        if (Status != GameStatus.AskingQuestion)
+        {
+            return;
+        }
+
+        if (QuestionDelaySeconds is null || QuestionStartTime is null)
+        {
+            return;
+        }
+
+        QuestionCurrentProgress = (decimal)(DateTimeOffset.UtcNow - QuestionStartTime.Value).TotalSeconds / QuestionDelaySeconds.Value;
+        OnStateChanged();
     }
 }

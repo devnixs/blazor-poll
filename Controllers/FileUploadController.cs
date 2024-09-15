@@ -16,7 +16,9 @@ public class FileUploadController : Controller
     {
         // Check if the request contains multipart/form-data.
         if (!Request.HasFormContentType)
+        {
             return BadRequest("Unsupported media type.");
+        }
 
         var form = await Request.ReadFormAsync();
         if (form.Files.Count == 0)
@@ -31,7 +33,9 @@ public class FileUploadController : Controller
         }
         
         if (file.Length > 1024 * 1024 * 20)
+        {
             return BadRequest("File too large.");
+        }
 
         var id = Guid.NewGuid();
         var filePath = Path.GetTempFileName();

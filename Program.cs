@@ -74,6 +74,7 @@ builder.Services.AddScoped<GameCreatorService>();
 builder.Services.AddTransient<GameTemplateRepository>();
 builder.Services.AddSingleton<GameStateAccessor>();
 builder.Services.AddHostedService(i => i.GetRequiredService<GameStateAccessor>());
+builder.Services.AddHostedService<AutomaticGameProgressService>();
 builder.Services.AddTransient<HttpUtils>();
 builder.Services.AddTransient<DatabaseWriteContextProvider>();
 builder.Services.AddTransient<DatabaseReadContextProvider>();

@@ -76,8 +76,11 @@
         var firstLetter = Model.Name[0..1];
         var rest = Model.Name[1..];
         var updated = firstLetter.ToUpperInvariant() + rest;
-        
-        await PlayerService.SetPlayerName(GameIdGuid.Value, updated);
-        NavigationManager.NavigateTo("/game/" + GameIdGuid.Value);
+
+        if (GameIdGuid != null)
+        {
+            await PlayerService.SetPlayerName(GameIdGuid.Value, updated);
+            NavigationManager.NavigateTo("/game/" + GameIdGuid.Value);
+        }
     }
 }

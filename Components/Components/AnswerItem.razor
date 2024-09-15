@@ -30,13 +30,13 @@
     public int Index { get; set; }
 
     [Parameter]
-    public Action? OnSelectChoice { get; set; } = () => { };
+    public Action OnSelectChoice { get; set; } = () => { };
 
     [Parameter]
     public string[]? AnsweredPlayers { get; set; }
 
     [Inject]
-    public IJSRuntime Runtime { get; set; }
+    public IJSRuntime? Runtime { get; set; }
 
     protected override async Task OnAfterRenderAsync(bool isFirstRender)
     {
@@ -45,7 +45,10 @@
             return;
         }
 
-        await Runtime.InvokeVoidAsync("initOptimisticRendering", "#" + _identifier);
+        if (Runtime != null)
+        {
+            await Runtime.InvokeVoidAsync("initOptimisticRendering", "#" + _identifier);
+        }
     }
 
 }

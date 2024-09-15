@@ -53,10 +53,14 @@ else
                 }
             }
         </div>
-
+        @if (CurrentGame is not null && CurrentGame.Status == GameStatus.AskingQuestion)
+        {
+            <span class="text-end me-3">@_answersCount /  @_allPlayers.Length</span>
+        }
         @if (_isAdmin && CurrentGame?.Status != GameStatus.Completed)
         {
             <div class="text-end mb-1">
+                
                 <button class="btn btn-outline-success me-2" @onclick="Next">
                     Next
                     <i class="fa fa-arrow-right fa-fw"></i>
@@ -156,7 +160,14 @@ else
                         />
                     }
                 </div>
-                @if (_allPlayers.Length >= 2)
+                @if (CurrentGame.QuestionDelaySeconds.HasValue && CurrentGame.QuestionStartTime.HasValue)
+                {
+                    var timeLeft = CurrentGame.QuestionDelaySeconds.Value - (DateTimeOffset.UtcNow - CurrentGame.QuestionStartTime.Value).TotalSeconds;
+                    
+                    <div class="progress mt-2" role="progressbar">
+                        <div class="progress-bar" style="width: @(Math.Floor(CurrentGame.QuestionCurrentProgress * 100))%"> @(Math.Round(timeLeft)) </div>
+                    </div>
+                }else if (_allPlayers.Length >= 2)
                 {
                     var percent = Math.Floor(100 * (double)_answersCount / _allPlayers.Length);
 
@@ -298,7 +309,7 @@ else
 
 
     private Answer? _answer;
-    private Answer[] _allAnswers;
+    private Answer[] _allAnswers = Array.Empty<Answer>();
     private Player? _player;
     private Player[] _allPlayers = Array.Empty<Player>();
     private Dictionary<Guid, Player> _playersDictionnary = new Dictionary<Guid, Player>();
@@ -318,6 +329,9 @@ else
         }
 
         CurrentGame?.PlayerHeartBeat(_player);
+        
+        // Trigger refresh of UI if necessary.
+        InvokeAsync(StateHasChanged);
     }
 
     protected async Task OnPlayerClicked(Player player)

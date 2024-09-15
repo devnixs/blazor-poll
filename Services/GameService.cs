@@ -86,36 +86,6 @@ public class GameService
         game.SetCurrentQuestion(firstQuestion);
     }
 
-    public Task<string?> ValidateGame(int templateId)
-    {
-        var template = new GameTemplate();
-        if (template.Questions.Count == 0)
-        {
-            return Task.FromResult("Il faut au moins une question")!;
-        }
-
-        // Ensure all questions are valid
-        for (var i = 1; i <= template.Questions.ToArray().Length; i++)
-        {
-            var question = template.Questions.ToArray()[i - 1];
-            if (question.Choices.Count > 4)
-            {
-                return Task.FromResult($"Question {i} doit avoir au moins une réponse")!;
-            }
-
-            if (question.Choices.Count > 4)
-            {
-                return Task.FromResult($"Question {i} doit avoir au maximum 4 réponses")!;
-            }
-
-            if (!question.Choices.Any(c => c.IsValid))
-            {
-                return Task.FromResult($"Question {i} doit avoir une réponse valide")!;
-            }
-        }
-
-        return Task.FromResult<string?>(null);
-    }
 
     public void ValidateQuestion(Guid gameId)
     {

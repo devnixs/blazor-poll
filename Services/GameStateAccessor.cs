@@ -44,10 +44,13 @@ public class GameStateAccessor : BackgroundService
         }
     }
 
-    public async Task<GameState> CreateGame(int gameTemplateId)
+    public async Task<GameState> CreateGame(CreateGameParameters parameters)
     {
-        var id = Guid.NewGuid();
-        var game = new GameState(id, gameTemplateId, _databaseReadContextProvider, _logger2);
+        var id = parameters.GameId ?? Guid.NewGuid();
+        var game = new GameState(id, parameters.TemplateId, _databaseReadContextProvider, _logger2)
+        {
+            QuestionDelaySeconds = parameters.QuestionDelay,
+        };
         await game.Initialize();
         _games.Add(id, game);
         return game;
@@ -69,4 +72,16 @@ public class GameStateAccessor : BackgroundService
     {
         return _games.GetValueOrDefault(id);
     }
+
+    public Guid[] GetGames()
+    {
+        return _games.Keys.ToArray();
+    }
+}
+
+public record CreateGameParameters
+{
+    public int TemplateId { get; set; }
+    public Guid? GameId { get; set; }
+    public int? QuestionDelay { get; set; }
 }

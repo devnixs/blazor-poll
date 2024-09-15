@@ -22,7 +22,7 @@ async function run() {
   page.setDefaultNavigationTimeout(5 * 60 * 1000);
   page.setDefaultTimeout(5 * 60 * 1000);
   await page.goto(
-    "https://poll.w.thera-engineering.com/game/9098419f-5ac4-47e5-9480-a1f247ec8223"
+    "https://poll.w.thera-engineering.com/game/9926be89-eaaf-4288-8841-538f3aad41c1"
   );
 
   await page.waitForSelector("#firstname");

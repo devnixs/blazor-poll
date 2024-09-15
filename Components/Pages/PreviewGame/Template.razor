@@ -1,0 +1,188 @@
+﻿@page "/template/{TemplateIdentifier}"
+@using Poll.DAL.Entities
+@using Poll.DAL.Services
+@using Poll.DAL
+@using Microsoft.EntityFrameworkCore
+@using Poll.Services
+@inject DatabaseReadContextProvider DatabaseReadContextProvider
+@inject ILogger<Admin> Logger
+@inject GameStateAccessor GameStateAccessor 
+@inject NavigationManager NavigationManager 
+@inject PlayerService PlayerService 
+@inject IWebHostEnvironment Env 
+
+<PageTitle>Admin</PageTitle>
+
+<Microsoft.AspNetCore.Components.Sections.SectionContent SectionName="top-bar">
+    <span>Thera Engineering @(DateTimeOffset.UtcNow.Year) </span>
+</Microsoft.AspNetCore.Components.Sections.SectionContent>
+
+<div class="">
+    @if (Success)
+    {
+        <div class="alert alert-success">
+            Ce jeu a été créé. Conservez cette URL soigneusement pour pouvoir démarrer la partie en temps voulu:
+            <br/>
+            <br/>
+            <input class="form-control" value="@Url" disabled>
+        </div>
+    }
+
+    <div>
+        @if (_loading)
+        {
+            <div>Chargement...</div>
+        }
+        else if (_template == null)
+        {
+            <div>Jeu non trouvé.</div>
+        }
+        else
+        {
+            <div class="card col-md-4">
+                <div class="card-body">
+                    <h5 class="card-title">@_template.Name</h5>
+                    <p class="card-text">Créé le @_template.CreationDate.ToString("dd/MM/yyy")</p>
+                    @if (_startingGame)
+                    {
+                        <a class="btn btn-secondary"><i class="fa fa-pencil-o fa-fw me-1"></i> Edit</a><br/><br/>
+                        <a class="btn btn-primary"><i class="fa fa-refresh fa-spin fa-fw me-1"></i> Démarrer</a>
+                    }
+                    else
+                    {
+                        <a href="/edit-game/@_template.Identifier" class="btn btn-secondary"><i class="fa fa-pencil fa-fw me-1"></i> Edit</a><br/><br/>
+                        <a @onclick="() => StartGame(_template.Id)" class="btn btn-primary"><i class="fa fa-arrow-right fa-fw me-1"></i> Démarrer</a> 
+                    }
+                    
+                    <div class="accordion mt-5">
+                      <div class="accordion-item">
+                        <h2 class="accordion-header">
+                          <button class="accordion-button @(_advancedTabOpen ? "": "collapsed")" type="button" onclick="@(() => { _advancedTabOpen = !_advancedTabOpen;})" data-bs-toggle="collapse" data-bs-target="#collapseOne" aria-expanded="true" aria-controls="collapseOne">
+                            Avancé
+                          </button>
+                        </h2>
+                        <div id="collapseOne" class="accordion-collapse collapse @(_advancedTabOpen ? "show": "")" data-bs-parent="#accordionExample">
+                            <div class="accordion-body">
+                                @if (_model is not null && _advancedTabContext is not null)
+                                {
+                                    <EditForm EditContext="_advancedTabContext" FormName="NewGame">
+                                        <div class="mb-3">
+                                            <label for="name" class="form-label">Identifiant du jeu</label>
+                                            <InputText type="text" class="form-control" @bind-Value="_model.GameIdentifier" id="name" placeholder=""/>
+                                            <ValidationMessage For="() => _model.GameIdentifier"></ValidationMessage>
+                                        </div>
+                                        <div class="mb-3">
+                                            <label for="name" class="form-label">Délai entre chaque questions (secondes)</label>
+                                            <InputText type="text" class="form-control" @bind-Value="_model.QuestionDelay" id="name" placeholder=""/>
+                                            <ValidationMessage For="() => _model.QuestionDelay"></ValidationMessage>
+                                        </div>
+                                        <FluentValidationValidator/>
+                                    </EditForm>
+                                }
+                            </div>
+                        </div>
+                      </div>
+                    </div>
+                </div>
+            </div>
+            
+        }
+
+    </div>
+</div>
+
+
+@code {
+    private GameTemplate? _template;
+    private bool _startingGame;
+    private bool _loading = true;
+
+    [Inject]
+    public IHttpContextAccessor? CtxAccessor { get; set; }
+    
+    [Parameter]
+    public string? TemplateIdentifier { get; set; }
+    
+    [SupplyParameterFromQuery]
+    public bool Success { get; set; }
+
+    public string Url { get; set; } = "";
+
+    private bool _advancedTabOpen = true;
+    private EditContext? _advancedTabContext;
+    private PreviewGameModel? _model;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _model = new PreviewGameModel()
+        {
+            GameIdentifier = "ab8ec0d7-caa4-4823-b127-53785bd62c9e",
+            QuestionDelay = "20",
+        };
+        _advancedTabContext = new(_model);
+        
+        _template = await DatabaseReadContextProvider.Read<PollContext, GameTemplate?>(async db => await db.GameTemplates.SingleOrDefaultAsync(i => i.Identifier == TemplateIdentifier));
+        _loading = false;
+        
+        var ctx = CtxAccessor?.HttpContext;
+        if(ctx is not null && _template is not null)
+        {
+            var hostName = ctx.Request.Host.ToString();
+            var scheme = Env.IsProduction() ? "https" : ctx.Request.Scheme;
+
+            Url = $"{scheme}://{hostName}/template/{_template.Identifier}";
+        }
+
+
+        await base.OnInitializedAsync();
+    }
+    
+    private async Task StartGame(int gameTemplateId)
+    {
+        if (_advancedTabContext is not null)
+        {
+            _advancedTabContext.Validate();
+            if (_advancedTabContext.GetValidationMessages().Any())
+            {
+                return;
+            }
+        }
+        
+        Logger.LogInformation("Starting game for template {}", gameTemplateId);
+        _startingGame = true;
+
+        if (_model is null)
+        {
+            return;
+        }
+
+        var selectedGameId = string.IsNullOrEmpty(_model.GameIdentifier) ? (Guid?)null : Guid.Parse(_model.GameIdentifier);
+        var selectedQuestionDelay = string.IsNullOrEmpty(_model.QuestionDelay) ? (int?)null : int.Parse(_model.QuestionDelay);
+
+        GameState? game;
+        if (selectedGameId.HasValue)
+        {
+            game = GameStateAccessor.GetGame(selectedGameId.Value);
+            if (game is null)
+            {
+                game = await GameStateAccessor.CreateGame(new CreateGameParameters()
+                {
+                    QuestionDelay = selectedQuestionDelay,
+                    GameId = selectedGameId,
+                    TemplateId = gameTemplateId,
+                });
+            }
+        }
+        else
+        {
+            game = await GameStateAccessor.CreateGame(new CreateGameParameters()
+            {
+                QuestionDelay = selectedQuestionDelay,
+                TemplateId = gameTemplateId,
+            });
+        }
+
+        await PlayerService.SetAdmin(game.Id);
+        NavigationManager.NavigateTo("/game/" + game.Id);
+    }
+}

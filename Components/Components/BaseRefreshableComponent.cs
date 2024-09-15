@@ -44,7 +44,7 @@ public abstract class BaseRefreshableComponent : ComponentBase, IDisposable
     public virtual void Dispose()
     {
         _disposed = true;
-        CurrentGame?.SubscribeStateChanged(OnStateChanged);
+        CurrentGame?.UnsubscribeStateChanged(OnStateChanged);
     }
 
     protected virtual void AfterRefresh()

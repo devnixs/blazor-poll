@@ -55,7 +55,10 @@ public class PlayerService
 
     public async Task<Player?> GetPlayer(Guid gameId)
     {
-        if (!await _localStorage.ContainKeyAsync(Key)) return null;
+        if (!await _localStorage.ContainKeyAsync(Key))
+        {
+            return null;
+        }
 
         var game = _gameStateAccessor.GetGame(gameId);
         
