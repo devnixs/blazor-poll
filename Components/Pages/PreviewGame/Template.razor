@@ -114,11 +114,7 @@
 
     protected override async Task OnInitializedAsync()
     {
-        _model = new PreviewGameModel()
-        {
-            GameIdentifier = "ab8ec0d7-caa4-4823-b127-53785bd62c9e",
-            QuestionDelay = "20",
-        };
+        _model = new PreviewGameModel();
         _advancedTabContext = new(_model);
         
         _template = await DatabaseReadContextProvider.Read<PollContext, GameTemplate?>(async db => await db.GameTemplates.SingleOrDefaultAsync(i => i.Identifier == TemplateIdentifier));
