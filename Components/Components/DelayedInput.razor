@@ -1,0 +1,34 @@
+@using System.Text
+@namespace Poll.Components.Components
+
+@* The whole reason behind this complicated logic is because a bug on iOS *@
+@* For an unknown reason, the browser crashes when the input component loses focus *@
+@* This happens in both Safari and Brave browsers *@
+@* Debugging the browser using remote debugging did not help *@
+
+<input type="text" class="form-control" id="@Id" maxlength="@MaxLength" value="@Value" @onchange="@(OnChangeInternal)" placeholder=""/>
+    
+@code
+{
+    [Parameter]
+    public string? Id { get; set; }
+
+    [Parameter]
+    public string? MaxLength { get; set; }
+    
+    [Parameter]
+    public string? Value { get; set; }
+    
+    [Parameter]
+    public Action<string>? OnChange { get; set; }
+
+    private async void OnChangeInternal(ChangeEventArgs e)
+    {
+        await Task.Delay(TimeSpan.FromMilliseconds(100));
+        if (e.Value is string value)
+        {
+            OnChange?.Invoke(value);
+        }
+    }
+
+}

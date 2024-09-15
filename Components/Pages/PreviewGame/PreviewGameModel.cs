@@ -1,12 +1,11 @@
-﻿using System.Text.RegularExpressions;
-using FluentValidation;
+﻿using FluentValidation;
 
 namespace Poll.Components.Pages.PreviewGame;
 
 public class PreviewGameModel
 {
-    public string GameIdentifier { get; set; }
-    public string QuestionDelay { get; set; }
+    public string GameIdentifier { get; set; } = "";
+    public string QuestionDelay { get; set; } = "";
 }
 
 public class GamePreviewValidator : AbstractValidator<PreviewGameModel>
