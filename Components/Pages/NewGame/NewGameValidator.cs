@@ -19,6 +19,7 @@ public class QuestionValidator : AbstractValidator<QuestionModel>
         RuleForEach(x => x.Choices).SetValidator(new ChoiceValidator());
         RuleFor(x => x.Choices).Must(i=> i.Count(j=>j.IsValid) > 0).WithMessage("Au moins un choix doit être valide.");
         RuleFor(x => x.Choices).Must(i=> i.Count(j=>j.IsValid) < 2).WithMessage("Seulement un choix doit être valide.");
+        RuleFor(x => x.DelayBeforeShowingAnswsers).Must(i=> int.TryParse(i, out var o) && o >= 0).WithMessage("Doit être un entier positif.");
     }
 }
 

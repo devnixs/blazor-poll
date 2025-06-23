@@ -106,6 +106,9 @@ namespace Poll.Migrations
                         .HasMaxLength(512)
                         .HasColumnType("character varying(512)");
 
+                    b.Property<int>("DelayBeforeShowingAnswsers")
+                        .HasColumnType("integer");
+
                     b.Property<int>("GameTemplateId")
                         .HasColumnType("integer");
 
@@ -114,6 +117,9 @@ namespace Poll.Migrations
 
                     b.Property<Guid?>("PresentingAnswerImageId")
                         .HasColumnType("uuid");
+
+                    b.Property<bool>("QuestionDoesNotHaveRewards")
+                        .HasColumnType("boolean");
 
                     b.HasKey("Id");
 
@@ -149,6 +155,36 @@ namespace Poll.Migrations
                     b.HasIndex("QuestionId");
 
                     b.ToTable("QuestionChoice");
+                });
+
+            modelBuilder.Entity("Poll.DAL.Entities.RunHistory", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset>("Date")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Game")
+                        .IsRequired()
+                        .HasMaxLength(255)
+                        .HasColumnType("character varying(255)");
+
+                    b.Property<string>("Player")
+                        .IsRequired()
+                        .HasMaxLength(255)
+                        .HasColumnType("character varying(255)");
+
+                    b.Property<int>("Points")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("TemplateId")
+                        .HasColumnType("integer");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("RunHistories");
                 });
 
             modelBuilder.Entity("Poll.DAL.Entities.GameFile", b =>

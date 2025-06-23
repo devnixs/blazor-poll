@@ -18,6 +18,9 @@ public class QuestionModel
     
     [Required]
     public string Name { get; set; } = "";
+    
+    public bool QuestionDoesNotHaveRewards { get; set; } = false;
+    public string DelayBeforeShowingAnswsers { get; set; } = "0";
 
     public Guid? QuestionImageId { get; set; }
     public Guid? ResponseImageId { get; set; }

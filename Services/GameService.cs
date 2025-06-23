@@ -1,5 +1,7 @@
 ﻿using MoreLinq;
+using Poll.DAL;
 using Poll.DAL.Entities;
+using Poll.DAL.Services;
 
 namespace Poll.Services;
 
@@ -7,14 +9,17 @@ public class GameService
 {
     private readonly GameStateAccessor _gameStateAccessor;
     private readonly ILogger<GameService> _logger;
+    private readonly DatabaseWriteContextProvider _databaseWriteContextProvider;
 
     public GameService(
         GameStateAccessor gameStateAccessor,
-        ILogger<GameService> logger
+        ILogger<GameService> logger,
+        DatabaseWriteContextProvider databaseWriteContextProvider
     )
     {
         _gameStateAccessor = gameStateAccessor;
         _logger = logger;
+        _databaseWriteContextProvider = databaseWriteContextProvider;
     }
 
     public Answer? PlayerSelectsAnswer(Guid gameId, Guid playerId, int questionChoiceId)
@@ -87,6 +92,22 @@ public class GameService
     }
 
 
+    public void SkipAnswerCountdown(Guid gameId)
+    {
+        var game = _gameStateAccessor.GetGame(gameId);
+        if (game is null)
+        {
+            return;
+        }
+
+        if (game.Status != GameStatus.AskingQuestion)
+        {
+            return;
+        }
+
+        game.SkipAnswerCountdown();
+    }
+    
     public void ValidateQuestion(Guid gameId)
     {
         var game = _gameStateAccessor.GetGame(gameId);
@@ -105,7 +126,7 @@ public class GameService
         game.OnStateChanged();
     }
 
-    public void MoveToNextQuestion(Guid gameId)
+    public async Task MoveToNextQuestion(Guid gameId)
     {
         var game = _gameStateAccessor.GetGame(gameId);
         if (game is null)
@@ -132,7 +153,7 @@ public class GameService
 
             if (!currentIndex.HasValue || currentIndex == game.Questions.Length - 1)
             {
-                FinishGame(game.Id);
+                await FinishGame(game.Id);
             }
             else
             {
@@ -146,6 +167,12 @@ public class GameService
     {
         var answers = game.Answers.ToArray();
         var players = game.Players.ToArray();
+
+        var scoreMultiplier = 1;
+        if (game.CurrentQuestion is not null && game.CurrentQuestion.QuestionDoesNotHaveRewards)
+        {
+            scoreMultiplier = 0;
+        }
 
         foreach (var player in players)
         {
@@ -181,13 +208,15 @@ public class GameService
                     bonus = (int) Math.Floor(20 * (1 - ((double) index.Value / (validAnswers.Length - 1))));
                 }
 
-                answer.Score = 100 + bonus;
+                answer.Score = (100 + bonus);
 
                 if (answer.IsValid)
                 {
                     // Add a bonus shared across all the winners, to reward answers when few people won.
                     answer.Score += winnerPoolValuePerPlayer;
                 }
+
+                answer.Score *= scoreMultiplier;
                 
                 var player = players.SingleOrDefault(i => i.Id == answer.PlayerId);
                 if (player is not null)
@@ -198,7 +227,7 @@ public class GameService
             }
             else
             {
-                answer.Score = 0;
+                answer.Score = 0 * scoreMultiplier;
                 var player = players.SingleOrDefault(i => i.Id == answer.PlayerId);
                 if (player is not null)
                 {
@@ -208,11 +237,34 @@ public class GameService
         }
     }
 
-    private void FinishGame(Guid gameId)
+    private async Task FinishGame(Guid gameId)
     {
         _logger.LogInformation("Game {gameId} finished", gameId);
         var game = _gameStateAccessor.GetGame(gameId);
         game?.SetCurrentQuestion(null);
         game?.SetState(GameStatus.Completed);
+        try
+        {
+            await _databaseWriteContextProvider.Write<PollContext, int>(async db =>
+            {
+                foreach (var player in game.GetAllPlayers())
+                {
+                    db.RunHistories.Add(new RunHistory()
+                    {
+                        TemplateId = game.Template.Id,
+                        Player = player.Name,
+                        Game = game.Template.Name,
+                        Points = player.Score,
+                    });
+                }
+
+                await db.SaveChangesAsync();
+                return 0;
+            });
+        }
+        catch (Exception e)
+        {
+            _logger.LogError(e, "Failed to save history");
+        }
     }
 }

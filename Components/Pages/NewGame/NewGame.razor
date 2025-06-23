@@ -8,6 +8,7 @@
 @using Poll.Components.Components
 @using Poll.Services
 @using Serilog
+@using System.Globalization
 @inject DatabaseWriteContextProvider DatabaseWriteContextProvider 
 @inject DatabaseReadContextProvider DatabaseReadContextProvider 
 @inject NavigationManager NavigationManager 
@@ -66,7 +67,19 @@
                     <ImageUpload value="@question.ResponseImageId" OnFileReady="(id) => question.ResponseImageId = id"/>
                     <ValidationMessage For="() => question.ResponseImageId"></ValidationMessage>
                 </div>
-
+                <div class="mb-3">
+                    <label for="@($"questionAnswerDelay-{i1}")" class="form-label">Délai en secondes avant apparition des réponses</label>
+                    <InputText type="text" @bind-Value="question.DelayBeforeShowingAnswsers" id="@($"questionAnswerDelay-{i1}")" class="form-control"/>
+                    <ValidationMessage For="() => question.DelayBeforeShowingAnswsers"></ValidationMessage>
+                </div>
+                <div class="mb-3">
+                    <div class="form-check">
+                        <InputCheckbox class="form-check-input" type="checkbox" @bind-Value="question.QuestionDoesNotHaveRewards" id="@($"questionDoesNotHaveRewards-{i1}")" />
+                        <label class="form-check-label" for="@($"questionDoesNotHaveRewards-{i1}")">
+                            Cette question ne raporte pas de points
+                        </label>
+                    </div>
+                </div>
 
                 @for (var choiceIndex = 0; choiceIndex < question.Choices.Count; choiceIndex++)
                 {
@@ -359,6 +372,8 @@
                 Name = question.Content,
                 QuestionImageId = matchingFile1?.Id,
                 ResponseImageId = matchingFile2?.Id,
+                DelayBeforeShowingAnswsers = question.DelayBeforeShowingAnswsers.ToString(CultureInfo.InvariantCulture),
+                QuestionDoesNotHaveRewards = question.QuestionDoesNotHaveRewards,
                 Choices = question.Choices
                     .OrderBy(i => i.Index)
                     .Select(c => new ChoiceModel()

@@ -22,7 +22,7 @@ async function run() {
   page.setDefaultNavigationTimeout(5 * 60 * 1000);
   page.setDefaultTimeout(5 * 60 * 1000);
   await page.goto(
-    "https://poll.w.thera-engineering.com/game/9926be89-eaaf-4288-8841-538f3aad41c1"
+    "https://poll.w.thera-engineering.com/game/9b5ea4a3-a5b3-434d-9959-300f9d4fbd10"
   );
 
   await page.waitForSelector("#firstname");
@@ -30,7 +30,9 @@ async function run() {
   const username = "R-" + makeid(6);
   await page.type("#firstname", username);
 
-  await page.click('[type="submit"]');
+  await page.click('label');
+
+  await page.click('[type="button"]');
 
   while (true) {
     console.log("Start of loop. Pausing for a second.");

@@ -90,6 +90,8 @@ public class GameCreatorService
             Index = index1,
             PresentingAnswerImageId = i.ResponseImageId,
             AskingQuestionImageId = i.QuestionImageId,
+            QuestionDoesNotHaveRewards = i.QuestionDoesNotHaveRewards,
+            DelayBeforeShowingAnswsers = int.Parse(i.DelayBeforeShowingAnswsers),
             Choices = i.Choices.Select((c, index2) => new QuestionChoice()
             {
                 Content = c.Content,

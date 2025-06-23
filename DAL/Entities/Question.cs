@@ -21,6 +21,10 @@ public class Question
     public Guid? AskingQuestionImageId { get; set; }
     
     public Guid? PresentingAnswerImageId { get; set; }
+    
+    public int DelayBeforeShowingAnswsers { get; set; }
+    
+    public bool QuestionDoesNotHaveRewards { get; set; }
 
     public override string ToString()
     {

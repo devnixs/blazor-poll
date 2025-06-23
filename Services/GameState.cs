@@ -16,6 +16,7 @@ public class GameState : IDisposable
 
     public Question[] Questions { get; private set; } = Array.Empty<Question>();
     public Question? CurrentQuestion { get; private set; }
+    public int AnswersVisibleCountDown { get; private set; }
     public GameTemplate Template { get; private set; } = null!;
 
     private readonly List<Answer> _answers = new List<Answer>();
@@ -230,6 +231,11 @@ public class GameState : IDisposable
         if (question is not null)
         {
             _logger.LogInformation("Switched to new question : {question}", JsonSerializer.Serialize(question, Serialization.DefaultSerializationOptions));
+            
+            if (question.DelayBeforeShowingAnswsers > 0)
+            {
+                AnswersVisibleCountDown = question.DelayBeforeShowingAnswsers;
+            }
             SetState(GameStatus.AskingQuestion);
         }
     }
@@ -270,12 +276,30 @@ public class GameState : IDisposable
             return;
         }
 
-        if (QuestionDelaySeconds is null || QuestionStartTime is null)
+        var stateHasChanged = false;
+
+        if (AnswersVisibleCountDown > 0)
         {
-            return;
+            AnswersVisibleCountDown--;
+            QuestionStartTime = DateTimeOffset.UtcNow;
+            stateHasChanged = true;
+        }
+        else if (QuestionDelaySeconds is not null && QuestionStartTime is not null)
+        {
+            QuestionCurrentProgress = (decimal) (DateTimeOffset.UtcNow - QuestionStartTime.Value).TotalSeconds /
+                                      QuestionDelaySeconds.Value;
+            stateHasChanged = true;
         }
 
-        QuestionCurrentProgress = (decimal)(DateTimeOffset.UtcNow - QuestionStartTime.Value).TotalSeconds / QuestionDelaySeconds.Value;
+        if (stateHasChanged)
+        {
+            OnStateChanged();
+        }
+    }
+
+    public void SkipAnswerCountdown()
+    {
+        AnswersVisibleCountDown = 0;
         OnStateChanged();
     }
 }

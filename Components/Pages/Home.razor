@@ -43,24 +43,25 @@ else
                 if (_player?.NameIsLocked == false)
                 {
                     <a href="/create-player/@CurrentGame.Id">
-                        <strong>@_player?.Name</strong> 
-                            <i class="fa fa-pencil ms-2"></i>
+                        <strong>@_player?.Name</strong>
+                        <i class="fa fa-pencil ms-2"></i>
                     </a>
                 }
                 else
                 {
-                    <strong>@_player?.Name</strong> 
+                    <strong>@_player?.Name</strong>
                 }
             }
         </div>
         @if (CurrentGame is not null && CurrentGame.Status == GameStatus.AskingQuestion)
         {
-            <span class="text-end me-3">@_answersCount /  @_allPlayers.Length</span>
+            <span class="text-end me-3">@_answersCount / @_allPlayers.Length</span>
         }
+
         @if (_isAdmin && CurrentGame?.Status != GameStatus.Completed)
         {
             <div class="text-end mb-1">
-                
+
                 <button class="btn btn-outline-success me-2" @onclick="Next">
                     Next
                     <i class="fa fa-arrow-right fa-fw"></i>
@@ -138,38 +139,46 @@ else
                     </div>
                 }
 
+                @if (CurrentGame.AnswersVisibleCountDown > 0)
+                {
+                    <div class="answer-countdown"> @CurrentGame.AnswersVisibleCountDown </div>
+                }
+                else
+                {
                 <div class="question-container">
-                    @for (var index = 0; index < CurrentGame.CurrentQuestion.Choices.ToArray().Length; index++)
-                    {
-                        var choice = CurrentGame.CurrentQuestion.Choices.ToArray()[index];
-                        @* <div *@
-                        @*     @onclick="() => OnSelectChoice(choice.Id)" *@
-                        @*     @key="choice.Id" *@
-                        @*     class="question question-@index @(_answer != null ? (_answer.ChoiceId == choice.Id ? "selected" : "not-selected") : "")"> *@
-                        @*     <div class="question-inner"> *@
-                        @*         @choice.Content *@
-                        @*     </div> *@
-                        @* </div> *@
-                        @* *@
-                        <AnswerItem
-                            OnSelectChoice="() => OnSelectChoice(choice.Id)"
-                            @key="@choice.Id"
-                            Content="@choice.Content"
-                            Index="index"
-                            IsSelected="@(_answer != null ? (_answer.ChoiceId == choice.Id) : null)"
-                        />
-                    }
+
+                        @for (var index = 0; index < CurrentGame.CurrentQuestion.Choices.ToArray().Length; index++)
+                        {
+                            var choice = CurrentGame.CurrentQuestion.Choices.ToArray()[index];
+                            @* <div *@
+                            @*     @onclick="() => OnSelectChoice(choice.Id)" *@
+                            @*     @key="choice.Id" *@
+                            @*     class="question question-@index @(_answer != null ? (_answer.ChoiceId == choice.Id ? "selected" : "not-selected") : "")"> *@
+                            @*     <div class="question-inner"> *@
+                            @*         @choice.Content *@
+                            @*     </div> *@
+                            @* </div> *@
+                            @* *@
+                            <AnswerItem
+                                OnSelectChoice="() => OnSelectChoice(choice.Id)"
+                                @key="@choice.Id"
+                                Content="@choice.Content"
+                                Index="index"
+                                IsSelected="@(_answer != null ? (_answer.ChoiceId == choice.Id) : null)"/>
+                        }
                 </div>
+                }
                 @if (CurrentGame.QuestionDelaySeconds.HasValue && CurrentGame.QuestionStartTime.HasValue)
                 {
                     var timeLeft = CurrentGame.QuestionDelaySeconds.Value - (DateTimeOffset.UtcNow - CurrentGame.QuestionStartTime.Value).TotalSeconds;
-                    
+
                     <div class="progress mt-2" role="progressbar">
                         <div class="progress-bar" style="width: @(Math.Floor(CurrentGame.QuestionCurrentProgress * 100))%"> @(Math.Round(timeLeft)) </div>
                     </div>
-                }else if (_allPlayers.Length >= 2)
+                }
+                else if (_allPlayers.Length >= 2)
                 {
-                    var percent = Math.Floor(100 * (double)_answersCount / _allPlayers.Length);
+                    var percent = Math.Floor(100 * (double) _answersCount / _allPlayers.Length);
 
                     <div class="progress mt-2" role="progressbar" aria-label="Basic example" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100">
                         <div class="progress-bar" style="width: @(percent)%"></div>
@@ -181,7 +190,7 @@ else
                 var validChoice = CurrentGame.CurrentQuestion.Choices.FirstOrDefault(i => i.IsValid);
 
                 <h1 class="text-center mb-3">
-                    @CurrentGame.CurrentQuestion.Content 
+                    @CurrentGame.CurrentQuestion.Content
                 </h1>
 
                 if (CurrentGame.CurrentQuestion.PresentingAnswerImageId.HasValue)
@@ -190,6 +199,7 @@ else
                         <img class="image-details" src="/file/get/@CurrentGame.CurrentQuestion.PresentingAnswerImageId" alt="Question Image"/>
                     </div>
                 }
+
                 if (_isAdmin)
                 {
                     <div class="question-container">
@@ -201,12 +211,7 @@ else
                                 IsValid="@(validChoice?.Id == choice.Id)"
                                 Content="@choice.Content"
                                 Index="index"
-                                AnsweredPlayers="@(_allAnswers?
-                                    .Where(i=>i.ChoiceId == choice.Id)
-                                    .Take(15)
-                                    .Select(i=> GetPlayer(i.PlayerId)?.Name)
-                                    .ToArray())"
-                                />
+                                AnsweredPlayers="@(_allAnswers?.Where(i => i.ChoiceId == choice.Id).Take(15).Select(i => GetPlayer(i.PlayerId)?.Name).ToArray())"/>
                         }
                     </div>
                 }
@@ -329,7 +334,7 @@ else
         }
 
         CurrentGame?.PlayerHeartBeat(_player);
-        
+
         // Trigger refresh of UI if necessary.
         InvokeAsync(StateHasChanged);
     }
@@ -346,7 +351,7 @@ else
             }
         }
     }
-    
+
     protected override async Task OnInitializedAsync()
     {
         Logger.LogInformation("GameId : {GameId}", GameId);
@@ -406,7 +411,7 @@ else
         GameService?.PlayerSelectsAnswer(CurrentGame.Id, _player.Id, choiceId);
     }
 
-    private void Next()
+    private async Task Next()
     {
         if (CurrentGame is null || GameService is null)
         {
@@ -419,7 +424,11 @@ else
         }
         else if (CurrentGame.Status == GameStatus.DisplayQuestionResult)
         {
-            GameService.MoveToNextQuestion(CurrentGame.Id);
+            await GameService.MoveToNextQuestion(CurrentGame.Id);
+        }
+        else if (CurrentGame.Status == GameStatus.AskingQuestion && CurrentGame.AnswersVisibleCountDown > 0)
+        {
+            GameService.SkipAnswerCountdown(CurrentGame.Id);
         }
         else if (CurrentGame.Status == GameStatus.AskingQuestion)
         {

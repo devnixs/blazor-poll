@@ -89,3 +89,8 @@ text-align: center;
 .waiting-image{
     max-width:100%;
 }
+
+.answer-countdown{    
+    text-align: center;
+    font-size: 10rem;
+}
