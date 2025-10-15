@@ -247,8 +247,15 @@ public class GameService
     {
         _logger.LogInformation("Game {gameId} finished", gameId);
         var game = _gameStateAccessor.GetGame(gameId);
-        game?.SetCurrentQuestion(null);
-        game?.SetState(GameStatus.Completed);
+
+        if (game is null)
+        {
+            _logger.LogWarning("Could not find game {gameId} to finish", gameId);
+            return;
+        }
+
+        game.SetCurrentQuestion(null);
+        game.SetState(GameStatus.Completed);
         try
         {
             await _databaseWriteContextProvider.Write<PollContext, int>(async db =>

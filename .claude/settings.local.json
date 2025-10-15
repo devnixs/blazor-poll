@@ -6,7 +6,8 @@
       "Bash(dotnet build)",
       "Bash(dotnet ef migrations add:*)",
       "Bash(dotnet tool restore:*)",
-      "Bash(cat:*)"
+      "Bash(cat:*)",
+      "Bash(dotnet build:*)"
     ],
     "deny": [],
     "ask": []

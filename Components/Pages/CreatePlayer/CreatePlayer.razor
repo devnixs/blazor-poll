@@ -73,9 +73,10 @@
     }
 
     
-    private async Task OnFormSubmit()
+    private Task OnFormSubmit()
     {
         Console.WriteLine();
+        return Task.CompletedTask;
     }
     
     private async Task Submit()

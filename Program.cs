@@ -120,7 +120,7 @@ app.UseSerilogRequestLogging(options =>
     options.IncludeQueryInRequestPath = true;
     options.EnrichDiagnosticContext = (context, httpContext) =>
     {
-        context.Set("HttpRequestClientIP", httpContext.Connection.RemoteIpAddress);
+        context.Set("HttpRequestClientIP", httpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown");
         var xForwardedFor = httpContext.Request.Headers["X-Forwarded-For"];
         context.Set("OriginalIpAddress", string.Join(";", xForwardedFor.Select(i => i ?? "")));
         context.Set("Headers", JsonSerializer.Serialize(httpContext.Request.Headers));
