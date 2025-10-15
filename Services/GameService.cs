@@ -195,7 +195,13 @@ public class GameService
             {
                 var index = validAnswers.FindIndex(i => i == answer);
                 int bonus;
-                if (index is null)
+
+                // Si l'option "Pas de bonus de rapidité" est activée, on n'applique pas le bonus
+                if (game.Template.NoSpeedBonus)
+                {
+                    bonus = 0;
+                }
+                else if (index is null)
                 {
                     bonus = 0;
                 }
@@ -217,7 +223,7 @@ public class GameService
                 }
 
                 answer.Score *= scoreMultiplier;
-                
+
                 var player = players.SingleOrDefault(i => i.Id == answer.PlayerId);
                 if (player is not null)
                 {

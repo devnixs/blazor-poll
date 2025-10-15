@@ -68,6 +68,7 @@ public class GameCreatorService
                 Name = model.Name,
                 Questions = MapQuestionModelToQuestions(model),
                 WaitingImageId = model.WaitingImageId,
+                NoSpeedBonus = model.NoSpeedBonus,
             };
 
             foreach (var file in files)
@@ -112,6 +113,7 @@ public class GameCreatorService
                 .SingleAsync(i => i.Identifier == existingTemplateIdentifier);
 
             existing.Name = model.Name;
+            existing.NoSpeedBonus = model.NoSpeedBonus;
             if (model.WaitingImageId.HasValue)
             {
                 existing.WaitingImageId = model.WaitingImageId;

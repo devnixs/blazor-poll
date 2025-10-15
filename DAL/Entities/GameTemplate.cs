@@ -19,6 +19,8 @@ public class GameTemplate
     [Required]
     public string Name { get; set; }
 
+    public bool NoSpeedBonus { get; set; } = false;
+
     public ICollection<Question> Questions { get; set; } = new List<Question>();
     
     public ICollection<GameFile> Files { get; set; } = new List<GameFile>();

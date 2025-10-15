@@ -7,6 +7,8 @@ public class NewGameModel
     [Required]
     public string Name { get; set; } = "";
 
+    public bool NoSpeedBonus { get; set; } = false;
+
     public List<QuestionModel> Questions { get; set; } = new List<QuestionModel>();
     public Guid? WaitingImageId { get; set; }
 }

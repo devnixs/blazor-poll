@@ -66,7 +66,6 @@
         
         var thisRef = DotNetObjectReference.Create(this);
         await JsRuntime.InvokeAsync<object>("createFilePond", thisRef, "#input-" + Id, Value?.ToString());
-        Logger.LogInformation("Loaded image upload component");
 
         await base.OnAfterRenderAsync(firstRender);
     }

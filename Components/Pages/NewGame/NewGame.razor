@@ -38,6 +38,14 @@
             <InputText type="text" class="form-control" @bind-Value="_model.Name" id="name" placeholder=""/>
             <ValidationMessage For="() => _model.Name"></ValidationMessage>
         </div>
+        <div class="mb-3">
+            <div class="form-check">
+                <InputCheckbox class="form-check-input" type="checkbox" @bind-Value="_model.NoSpeedBonus" id="noSpeedBonus" />
+                <label class="form-check-label" for="noSpeedBonus">
+                    Pas de bonus de rapidité
+                </label>
+            </div>
+        </div>
         <div class="mb-5">
             <label class="form-label">Image facultative affichée avant le début du jeu</label>
             <ImageUpload value="@_model.WaitingImageId" OnFileReady="(id) => _model.WaitingImageId = id"/>
@@ -361,6 +369,7 @@
         {
             Name = template.Name,
             WaitingImageId = waitingImageFile?.Id,
+            NoSpeedBonus = template.NoSpeedBonus,
         };
 
         foreach (var question in template.Questions)

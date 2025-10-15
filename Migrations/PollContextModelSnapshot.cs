@@ -17,7 +17,7 @@ namespace Poll.Migrations
         {
 #pragma warning disable 612, 618
             modelBuilder
-                .HasAnnotation("ProductVersion", "8.0.0-rc.2.23480.1")
+                .HasAnnotation("ProductVersion", "9.0.0")
                 .HasAnnotation("Relational:MaxIdentifierLength", 63);
 
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
@@ -79,6 +79,9 @@ namespace Poll.Migrations
                         .IsRequired()
                         .HasMaxLength(256)
                         .HasColumnType("character varying(256)");
+
+                    b.Property<bool>("NoSpeedBonus")
+                        .HasColumnType("boolean");
 
                     b.Property<Guid?>("WaitingImageId")
                         .HasColumnType("uuid");
